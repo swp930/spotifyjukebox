@@ -25,6 +25,10 @@ if (redirect_uri == null || redirect_uri == "") {
     redirect_uri = 'http://localhost:8888/callback';
 }
 
+var access_token = "BQCCnFjKTW7icLQTnyMKEA5hlJ_R6YZFv8yTCUExTlreram1rqV9nCskrRlFo8sDqco09VyHk8nbCa9XMtArWHszlIQcWLIpiwt7OZ1zoJ_8Kg5bJz2T5NkPmauc9RBu6WNCJxxh4D1TVvHC3RIM2TanDhrPAJOIFcQ"
+var access_token_2 = "BQBZGuK4bx_dEgswsrZBvFrC4K_7cHmZuOojK7JWG4b60UpOkJKtbQ0M3RVTEtKju1lIGRiqI_J8VmhJh8CUCIhtkwebDNGNw8T9arYPvjpO5oO9crwDkDaYcLBWwnLyMcwL8aOU7vsaUm7We8J2PxZSr5O_sBbUAi_ovzIrXqRbg2BHV7kBV1Y"
+
+
 /**
  * Generates a random string containing numbers and letters
  * @param  {number} length The length of the string
@@ -54,7 +58,7 @@ app.get('/login', function(req, res) {
     res.cookie(stateKey, state);
 
     // your application requests authorization
-    var scope = 'user-read-private user-read-email';
+    var scope = 'user-read-private user-read-email user-modify-playback-state';
     res.redirect('https://accounts.spotify.com/authorize?' +
         querystring.stringify({
             response_type: 'code',
@@ -62,7 +66,8 @@ app.get('/login', function(req, res) {
             scope: scope,
             redirect_uri: redirect_uri,
             state: state
-        }));
+        })
+    );
 });
 
 app.get('/callback', function(req, res) {
@@ -126,6 +131,75 @@ app.get('/callback', function(req, res) {
         });
     }
 });
+
+app.get('/pause', function(req, res) {
+    //res.send({ "completed": true })
+    console.log("Pausing")
+
+    var options = {
+        url: 'https://api.spotify.com/v1/me/player/pause',
+        headers: { 'Authorization': 'Bearer ' + access_token },
+        json: true
+    };
+
+    var options_2 = {
+        url: 'https://api.spotify.com/v1/me/player/pause',
+        headers: { 'Authorization': 'Bearer ' + access_token_2 },
+        json: true
+    };
+
+    // use the access token to access the Spotify Web API
+    request.put(options, function(error, response, body) {
+        console.log(error)
+        console.log(response)
+        console.log(body)
+    });
+
+    request.put(options_2, function(error, response, body) {
+        console.log(error)
+        console.log(response)
+        console.log(body)
+        res.send({})
+    });
+})
+
+app.get('/play', function(req, res) {
+    //res.send({ "completed": true })
+    console.log("Playing")
+
+    var uris = ["spotify:track:38loOBAgDgCW4pFWyH9cey"]
+
+    var options = {
+        url: 'https://api.spotify.com/v1/me/player/play',
+        headers: { 'Authorization': 'Bearer ' + access_token },
+        body: {
+            "uris": uris
+        },
+        json: true
+    };
+
+    var options_2 = {
+        url: 'https://api.spotify.com/v1/me/player/play',
+        headers: { 'Authorization': 'Bearer ' + access_token_2 },
+        body: {
+            "uris": uris
+        },
+        json: true
+    };
+
+    request.put(options, function(error, response, body) {
+        console.log(error)
+        console.log(response)
+        console.log(body)
+    });
+
+    request.put(options_2, function(error, response, body) {
+        console.log(error)
+        console.log(response)
+        console.log(body)
+        res.send({})
+    });
+})
 
 app.get('/refresh_token', function(req, res) {
 

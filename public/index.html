@@ -58,7 +58,35 @@
                     <dd>{{country}}</dd>
                 </dl>
             </div>
+            <button onclick="pauseMusic()">Pause music</button>
+            <button onclick="playMusic()">Play music</button>
         </div>
+    </script>
+
+    <script>
+        function pauseMusic() {
+            console.log("Pausing!!!")
+            var xhr = new XMLHttpRequest();
+            xhr.open("GET", "/pause", true);
+            xhr.onreadystatechange = function() { // Call a function when the state changes.
+                if (this.readyState === XMLHttpRequest.DONE && this.status === 200) {
+                    console.log("Paused")
+                }
+            }
+            xhr.send();
+        }
+
+        function playMusic() {
+            console.log("Playing!!!")
+            var xhr = new XMLHttpRequest();
+            xhr.open("GET", "/play", true);
+            xhr.onreadystatechange = function() { // Call a function when the state changes.
+                if (this.readyState === XMLHttpRequest.DONE && this.status === 200) {
+                    console.log("Played")
+                }
+            }
+            xhr.send();
+        }
     </script>
 
     <script id="oauth-template" type="text/x-handlebars-template">

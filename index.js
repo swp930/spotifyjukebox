@@ -317,5 +317,7 @@ app.get('/refresh_token', function(req, res) {
     });
 });
 
-console.log('Listening on 8888');
-app.listen(port);
+var server = http.createServer(app)
+server.listen(port, () => {
+    console.log(`Server started on port ${server.address().port} :)`);
+});

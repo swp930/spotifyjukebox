@@ -87,18 +87,40 @@ app.get('/jukebox', function(req, res) {
 
 app.post('/registerjukebox', function(req, res) {
     console.log(req.body)
+    console.log(req.body.jid)
+    var jid = req.body.jid
     pool
         .connect()
         .then(client => {
             return client
-                .query('SELECT id from jukebox')
+                .query('SELECT id from jukebox where id = $1', [jid])
                 .then(res => {
                     client.release()
-                    console.log(res.rows[0])
+                    console.log(res.rows)
+                    console.log("success")
+                    if (res.rows.length == 0) {
+                        console.log("No such jukebox exists")
+                        pool.connect()
+                            .then(client2 => {
+                                return client2
+                                    .query('INSERT INTO jukebox (id) VALUES ($1)', [jid])
+                                    .then(res => {
+                                        client2.release()
+                                        console.log(res.rows)
+                                    })
+                                    .catch(err => {
+                                        client2.release()
+                                        console.log(err.stack)
+                                    })
+                            })
+                    } else {
+                        console.log("Jukebox for the given id exists")
+                    }
                 })
                 .catch(err => {
                     client.release()
                     console.log(err.stack)
+                    console.log("failure")
                 })
         })
     res.send(req.body)

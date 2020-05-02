@@ -18,6 +18,7 @@ var path = require('path')
 var cors = require('cors');
 var querystring = require('querystring');
 var cookieParser = require('cookie-parser');
+var bodyParser = require('body-parser')
 
 var client_id = '5cdc53405b224d4fa1d1b8eef875c3d8'; // Your client id
 var client_secret = 'fa990d3dd5cc491f94f38a8e57d19ebe'; // Your secret
@@ -51,7 +52,8 @@ var app = express();
 
 app.use(express.static(__dirname + '/public'))
     .use(cors())
-    .use(cookieParser());
+    .use(cookieParser())
+    .use(bodyParser.json())
 
 app.get('/createjukebox', function(req, res) {
     var options = {

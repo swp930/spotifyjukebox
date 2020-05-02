@@ -19,6 +19,7 @@ var cors = require('cors');
 var querystring = require('querystring');
 var cookieParser = require('cookie-parser');
 var bodyParser = require('body-parser')
+var http = require('http')
 const { Pool, Client } = require('pg');
 
 var client_id = '5cdc53405b224d4fa1d1b8eef875c3d8'; // Your client id
@@ -128,12 +129,13 @@ app.post('/registerjukebox', function(req, res) {
 
 app.get('/login', function(req, res) {
 
-    var state = generateRandomString(16);
+    var state = JSON.stringify(req.query);
     res.cookie(stateKey, state);
 
     // your application requests authorization
     var scope = 'user-read-private user-read-email user-modify-playback-state';
-    res.redirect('https://accounts.spotify.com/authorize?' +
+    //redirect_uri += "?jid=" + jid + "&sid=" + sid
+    /*res.redirect('https://accounts.spotify.com/authorize?' +
         querystring.stringify({
             response_type: 'code',
             client_id: client_id,
@@ -141,7 +143,18 @@ app.get('/login', function(req, res) {
             redirect_uri: redirect_uri,
             state: state
         })
-    );
+    );*/
+
+    var url = 'https://accounts.spotify.com/authorize?' + querystring.stringify({
+        response_type: 'code',
+        client_id: client_id,
+        scope: scope,
+        redirect_uri: redirect_uri,
+        state: state,
+    })
+    console.log(url)
+
+    res.send({ "url": url })
 });
 
 app.get('/callback', function(req, res) {
@@ -149,8 +162,13 @@ app.get('/callback', function(req, res) {
     // your application requests refresh and access tokens
     // after checking the state parameter
 
+    console.log("Query vals")
+    console.log(req.query)
     var code = req.query.code || null;
     var state = req.query.state || null;
+    var stateVal = JSON.parse(state)
+    console.log("State is: ")
+    console.log(stateVal)
     var storedState = req.cookies ? req.cookies[stateKey] : null;
 
     if (state === null || state !== storedState) {

@@ -12,6 +12,7 @@
     <div>Jukebox id:
         <div id="jid"></div>
     </div>
+    <button onclick="login()">Login</button>
 
     <script>
         var regex_temp = /\?jid=(\S*)/
@@ -30,6 +31,59 @@
         xhr.send(JSON.stringify({
             "jid": arr[1]
         }));
+
+        function login() {
+            console.log("Logging in")
+            var sid = getCookie("sid")
+            console.log(sid)
+            if (sid == "") {
+                sid = guid()
+                setCookie("sid", sid, 30)
+                var xhr = new XMLHttpRequest();
+                var url = "/login?jid=" + arr[1] + "&sid=" + sid
+                xhr.open("GET", url, true);
+                xhr.onreadystatechange = function() { // Call a function when the state changes.
+                    if (this.readyState === XMLHttpRequest.DONE && this.status === 200) {
+                        var response = JSON.parse(xhr.response)
+                        console.log(response)
+                        var redirectURL = response.url
+                        window.location.href = redirectURL
+                    }
+                }
+                xhr.send();
+            }
+            console.log("sid is: " + sid)
+        }
+
+        function guid() {
+            let s4 = () => {
+                    return Math.floor((1 + Math.random()) * 0x10000)
+                        .toString(16)
+                        .substring(1);
+                }
+                //return id of format 'aaaaaaaa'-'aaaa'-'aaaa'-'aaaa'-'aaaaaaaaaaaa'
+            return s4() + s4() + '-' + s4() + '-' + s4();
+        }
+
+        function setCookie(key, value, days) {
+            var date = new Date();
+            date.setTime(date.getTime() + (days * 24 * 3600 * 1000))
+            var expiryDate = "expires=" + date.toUTCString();
+            document.cookie = key + "=" + value + ";" + expiryDate + ";path=/";
+        }
+
+        function getCookie(cookieToRetrieve) {
+            var withEquals = cookieToRetrieve + "="
+            var cookie = document.cookie
+            var indexVal = cookie.indexOf(withEquals)
+            if (indexVal == -1)
+                return ""
+            var indexOfSemi = cookie.indexOf(";", indexVal)
+            if (indexOfSemi == -1)
+                indexOfSemi = cookie.length
+            var res = cookie.substring(indexVal + withEquals.length, indexOfSemi)
+            return res
+        }
     </script>
 </body>
 

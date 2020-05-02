@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <title>Jukebox Spotify</title>
+</head>
+
+<body>
+    <h1>Jukebox</h1>
+    <div>Jukebox id:
+        <div id="jid"></div>
+    </div>
+
+    <script>
+        var regex_temp = /\?jid=(\S*)/
+        var arr = window.location.search.match(regex_temp)
+        console.log(arr[1])
+        document.getElementById("jid").innerHTML = arr[1]
+
+        var xhr = new XMLHttpRequest();
+        xhr.open("POST", "/registerjukebox", true);
+        xhr.setRequestHeader("Content-Type", "application/json")
+        xhr.onreadystatechange = function() { // Call a function when the state changes.
+            if (this.readyState === XMLHttpRequest.DONE && this.status === 200) {
+                console.log("Played")
+            }
+        }
+        xhr.send(JSON.stringify({
+            "jid": arr[1]
+        }));
+    </script>
+</body>
+
+</html>

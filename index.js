@@ -13,10 +13,13 @@ if (port == null || port == "") {
  */
 
 var express = require('express'); // Express web server framework
-var request = require('request'); // "Request" library  
+var request = require('request'); // "Request" library
+var path = require('path')
 var cors = require('cors');
 var querystring = require('querystring');
 var cookieParser = require('cookie-parser');
+var bodyParser = require('body-parser')
+    //const { Client } = require('pg');
 
 var client_id = '5cdc53405b224d4fa1d1b8eef875c3d8'; // Your client id
 var client_secret = 'fa990d3dd5cc491f94f38a8e57d19ebe'; // Your secret
@@ -28,6 +31,15 @@ if (redirect_uri == null || redirect_uri == "") {
 var access_token = "BQCCnFjKTW7icLQTnyMKEA5hlJ_R6YZFv8yTCUExTlreram1rqV9nCskrRlFo8sDqco09VyHk8nbCa9XMtArWHszlIQcWLIpiwt7OZ1zoJ_8Kg5bJz2T5NkPmauc9RBu6WNCJxxh4D1TVvHC3RIM2TanDhrPAJOIFcQ"
 var access_token_2 = "BQBZGuK4bx_dEgswsrZBvFrC4K_7cHmZuOojK7JWG4b60UpOkJKtbQ0M3RVTEtKju1lIGRiqI_J8VmhJh8CUCIhtkwebDNGNw8T9arYPvjpO5oO9crwDkDaYcLBWwnLyMcwL8aOU7vsaUm7We8J2PxZSr5O_sBbUAi_ovzIrXqRbg2BHV7kBV1Y"
 
+var host = "localhost"
+var port = "5432"
+var dbname = "spotapi"
+var user = "spot"
+var pwrd = "spotify123!"
+var local_url = "postgres://" + user + ":" + pwrd + "@" + host + ":" + port + "/" + dbname
+    /*const client = new Client({
+        connectionString: local_url
+    });*/
 
 /**
  * Generates a random string containing numbers and letters
@@ -50,7 +62,43 @@ var app = express();
 
 app.use(express.static(__dirname + '/public'))
     .use(cors())
-    .use(cookieParser());
+    .use(cookieParser())
+    .use(bodyParser.json())
+
+app.get('/createjukebox', function(req, res) {
+    var options = {
+        root: path.join(__dirname, "public")
+    }
+    res.sendFile('createjukebox.html', options)
+})
+
+app.get('/jukebox', function(req, res) {
+    var options = {
+        root: path.join(__dirname, "public")
+    }
+    res.sendFile('jukebox.html', options)
+})
+
+app.post('/registerjukebox', function(req, res) {
+    console.log(req.body)
+        /*client.query('SELECT * FROM jukebox', (err, res) => {
+                if (err) {
+                    console.log(err.stack)
+                } else {
+                    console.log(res)
+                }
+            })*/
+        /*app.get('/', function (req, res, next) {
+            client.query('SELECT * FROM Employee where id = $1', [1], function (err, result) {
+                if (err) {
+                    console.log(err);
+                    res.status(400).send(err);
+                }
+                res.status(200).send(result.rows);
+            });
+        });*/
+    res.send(req.body)
+})
 
 app.get('/login', function(req, res) {
 

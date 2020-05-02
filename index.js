@@ -62,6 +62,13 @@ app.get('/createjukebox', function(req, res) {
     res.sendFile('createjukebox.html', options)
 })
 
+app.get('/jukebox', function(req, res) {
+    var options = {
+        root: path.join(__dirname, "public")
+    }
+    res.sendFile('jukebox.html', options)
+})
+
 app.get('/login', function(req, res) {
 
     var state = generateRandomString(16);

@@ -69,6 +69,20 @@ app.get('/jukebox', function(req, res) {
     res.sendFile('jukebox.html', options)
 })
 
+app.post('/registerjukebox', function(req, res) {
+    console.log(req.body)
+        /*app.get('/', function (req, res, next) {
+            client.query('SELECT * FROM Employee where id = $1', [1], function (err, result) {
+                if (err) {
+                    console.log(err);
+                    res.status(400).send(err);
+                }
+                res.status(200).send(result.rows);
+            });
+        });*/
+    res.send(req.body)
+})
+
 app.get('/login', function(req, res) {
 
     var state = generateRandomString(16);

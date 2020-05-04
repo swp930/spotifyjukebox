@@ -222,7 +222,7 @@ app.get('/callback', function(req, res) {
 
                 // use the access token to access the Spotify Web API
                 request.get(options, function(error, response, body) {
-                    console.log(body);
+                    //console.log(body);
                 });
 
                 // we can also pass the token to the browser to make requests from there
@@ -324,7 +324,9 @@ app.get('/playjukebox', function(req, res) {
         access.push(access_token)
     }
     console.log(access)
-    playSongOnAccess(access[0])
+    for (var i = 0; i < access.length; i++) {
+        playSongOnAccess(access[i])
+    }
     res.send({})
 })
 
@@ -341,9 +343,9 @@ function playSongOnAccess(access) {
     };
 
     request.put(options, function(error, response, body) {
-        console.log(error)
-        console.log(response)
-        console.log(body)
+        //console.log(error)
+        //console.log(response)
+        //console.log(body)
     });
 }
 

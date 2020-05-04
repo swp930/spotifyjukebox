@@ -21,6 +21,11 @@ var cookieParser = require('cookie-parser');
 var bodyParser = require('body-parser')
 var http = require('http')
 const { Pool, Client } = require('pg');
+var webSocketServer = require('websocket').server;
+
+var sessionToConnectMap = {}
+var sessionToIDMap = {}
+var jukeboxToSessionMap = {}
 
 var client_id = '5cdc53405b224d4fa1d1b8eef875c3d8'; // Your client id
 var client_secret = 'fa990d3dd5cc491f94f38a8e57d19ebe'; // Your secret
@@ -169,6 +174,12 @@ app.get('/callback', function(req, res) {
     var stateVal = JSON.parse(state)
     console.log("State is: ")
     console.log(stateVal)
+    var jid = stateVal.jid
+    var sid = stateVal.sid
+    console.log("jid")
+    console.log(jid)
+    console.log("sid")
+    console.log(sid)
     var storedState = req.cookies ? req.cookies[stateKey] : null;
 
     if (state === null || state !== storedState) {
@@ -197,6 +208,12 @@ app.get('/callback', function(req, res) {
                 var access_token = body.access_token,
                     refresh_token = body.refresh_token;
 
+                var id = {
+                    "access": access_token,
+                    "refresh": refresh_token
+                }
+                sessionToIDMap[sid] = id
+
                 var options = {
                     url: 'https://api.spotify.com/v1/me',
                     headers: { 'Authorization': 'Bearer ' + access_token },
@@ -209,11 +226,13 @@ app.get('/callback', function(req, res) {
                 });
 
                 // we can also pass the token to the browser to make requests from there
-                res.redirect('/#' +
+                /*res.redirect('/#' +
                     querystring.stringify({
                         access_token: access_token,
                         refresh_token: refresh_token
-                    }));
+                    }));*/
+                var urlRedirect = '/jukebox?jid=' + jid
+                res.redirect(urlRedirect)
             } else {
                 res.redirect('/#' +
                     querystring.stringify({
@@ -293,6 +312,58 @@ app.get('/play', function(req, res) {
     });
 })
 
+app.get('/playjukebox', function(req, res) {
+    console.log(req.query)
+    var jid = req.query.jid
+    var sids = jukeboxToSessionMap[jid]
+    console.log("sids")
+    console.log(sids)
+    var access = []
+    for (var i = 0; i < sids.length; i++) {
+        var access_token = sessionToIDMap[sids[i]].access
+        access.push(access_token)
+    }
+    console.log(access)
+    playSongOnAccess(access[0])
+    res.send({})
+})
+
+function playSongOnAccess(access) {
+    var uris = ["spotify:track:38loOBAgDgCW4pFWyH9cey"]
+
+    var options = {
+        url: 'https://api.spotify.com/v1/me/player/play',
+        headers: { 'Authorization': 'Bearer ' + access },
+        body: {
+            "uris": uris
+        },
+        json: true
+    };
+
+    request.put(options, function(error, response, body) {
+        console.log(error)
+        console.log(response)
+        console.log(body)
+    });
+}
+
+app.get('/checksession', function(req, res) {
+    console.log(req.query)
+    var loggedin = false
+    var injukebox = false
+    if (req.query.sid) {
+        var sid = req.query.sid
+        if (sessionToIDMap[sid])
+            loggedin = true
+        if (sessionToConnectMap[sid])
+            injukebox = true
+    }
+    res.send({
+        "loggedin": loggedin,
+        "injukebox": injukebox
+    })
+})
+
 app.get('/refresh_token', function(req, res) {
 
     // requesting access token from refresh token
@@ -320,4 +391,57 @@ app.get('/refresh_token', function(req, res) {
 var server = http.createServer(app)
 server.listen(port, () => {
     console.log(`Server started on port ${server.address().port} :)`);
+});
+
+var wsServer = new webSocketServer({
+    httpServer: server
+});
+
+wsServer.on('request', function(request) {
+    console.log((new Date()) + ' Connection from origin ' + request.origin + '.');
+
+    var connection = request.accept(null, request.origin);
+
+    console.log((new Date()) + ' Connection accepted.');
+
+    connection.on('message', function(message) {
+        console.log(message)
+        var data = JSON.parse(message.utf8Data)
+        console.log(data)
+        switch (data.message_type) {
+            case 'register':
+                console.log("Registering new connection")
+                console.log(data.jid)
+                console.log(data.sid)
+                if (!jukeboxToSessionMap[data.jid]) {
+                    jukeboxToSessionMap[data.jid] = []
+                }
+                jukeboxToSessionMap[data.jid].push(data.sid)
+                sessionToConnectMap[data.sid] = connection
+
+                var injukebox = sessionToConnectMap[data.sid] ? true : false;
+                connection.sendUTF(JSON.stringify({ "injukebox": injukebox }))
+
+                break
+            case 'closing':
+                console.log("Connection closing")
+                console.log(data.jid)
+                console.log(data.sid)
+                if (jukeboxToSessionMap[data.jid]) {
+                    for (var i = 0; i < jukeboxToSessionMap[data.jid].length; i++) {
+                        if (jukeboxToSessionMap[i] === data.sid) {
+                            jukeboxToSessionMap.splice(i, 1)
+                            break
+                        }
+                    }
+                }
+
+                delete sessionToConnectMap[data.sid]
+                break
+            default:
+                break
+        }
+        //connection.sendUTF(JSON.stringify({ "message": message }))
+    })
+
 });

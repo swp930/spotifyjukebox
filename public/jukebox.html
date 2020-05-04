@@ -13,6 +13,12 @@
         <div id="jid"></div>
     </div>
     <button onclick="login()">Login</button>
+    <button onclick="connectToJukeBox()">Connect to jukebox</button>
+    <button onclick="playJukeBox()">Play music</button>
+    <p>Logged in: </p>
+    <p id="loggedin"></p>
+    <p>In jukebox: </p>
+    <p id="injukebox"></p>
 
     <script>
         var regex_temp = /\?jid=(\S*)/
@@ -31,6 +37,25 @@
         xhr.send(JSON.stringify({
             "jid": arr[1]
         }));
+
+        var xhr = new XMLHttpRequest();
+        var urlCheckSession = "/checksession?jid=" + arr[1]
+        var sidCS = getCookie("sid")
+        if (sidCS) {
+            urlCheckSession += "&sid=" + sidCS
+        }
+        xhr.open("GET", urlCheckSession, true);
+        xhr.onreadystatechange = function() { // Call a function when the state changes.
+            if (this.readyState === XMLHttpRequest.DONE && this.status === 200) {
+                var response = JSON.parse(xhr.response)
+                console.log("URL check session")
+                console.log(response)
+                document.getElementById("loggedin").innerHTML = response.loggedin
+                document.getElementById("injukebox").innerHTML = response.injukebox
+            }
+        }
+        xhr.send();
+
 
         function login() {
             console.log("Logging in")
@@ -53,6 +78,42 @@
                 xhr.send();
             }
             console.log("sid is: " + sid)
+        }
+
+        var HOST = location.origin.replace(/^http/, 'ws')
+        var connection = new WebSocket(HOST);
+
+        function connectToJukeBox() {
+            var connectObj = {
+                "message_type": "register",
+                "jid": arr[1],
+                "sid": getCookie("sid")
+            }
+            connection.send(JSON.stringify(connectObj))
+        }
+
+        function playJukeBox() {
+            console.log("Play Jukebox")
+            var url = "/playjukebox?jid=" + arr[1] + "&sid=" + getCookie("sid")
+            xhr.open("GET", url, true);
+            xhr.onreadystatechange = function() { // Call a function when the state changes.
+                if (this.readyState === XMLHttpRequest.DONE && this.status === 200) {
+                    var response = JSON.parse(xhr.response)
+                    console.log(response)
+                }
+            }
+            xhr.send()
+        }
+
+        connection.onmessage = function(message) {
+            console.log("message is")
+            console.log(message)
+            if (message.data) {
+                var data = JSON.parse(message.data)
+                if (data.injukebox) {
+                    document.getElementById("injukebox").innerHTML = data.injukebox
+                }
+            }
         }
 
         function guid() {
@@ -83,6 +144,15 @@
                 indexOfSemi = cookie.length
             var res = cookie.substring(indexVal + withEquals.length, indexOfSemi)
             return res
+        }
+
+        window.onbeforeunload = function() {
+            var connectObj = {
+                "message_type": "closing",
+                "jid": arr[1],
+                "sid": getCookie("sid")
+            }
+            connection.send(JSON.stringify(connectObj))
         }
     </script>
 </body>

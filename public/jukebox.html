@@ -15,16 +15,27 @@
     <button onclick="login()">Login</button>
     <button onclick="connectToJukeBox()">Connect to jukebox</button>
     <button onclick="playJukeBox()">Play music</button>
+    <button onclick="logout()">Logout</button>
     <p>Logged in: </p>
     <p id="loggedin"></p>
     <p>In jukebox: </p>
     <p id="injukebox"></p>
+    <p>Search for a song</p>
+    <input id="search_song" type="search"> <button onclick="searchForSong()">Search</button>
+    <div id="search_song_results"></div>
+
+    <p>Current queue is: </p>
+    <div id="queue"></div>
+
 
     <script>
         var regex_temp = /\?jid=(\S*)/
         var arr = window.location.search.match(regex_temp)
+        var song_results = []
+
         console.log(arr[1])
-        document.getElementById("jid").innerHTML = arr[1]
+        var jidGlobal = arr[1]
+        document.getElementById("jid").innerHTML = jidGlobal
 
         var xhr = new XMLHttpRequest();
         xhr.open("POST", "/registerjukebox", true);
@@ -35,26 +46,34 @@
             }
         }
         xhr.send(JSON.stringify({
-            "jid": arr[1]
+            "jid": jidGlobal
         }));
 
-        var xhr = new XMLHttpRequest();
-        var urlCheckSession = "/checksession?jid=" + arr[1]
-        var sidCS = getCookie("sid")
-        if (sidCS) {
-            urlCheckSession += "&sid=" + sidCS
-        }
-        xhr.open("GET", urlCheckSession, true);
-        xhr.onreadystatechange = function() { // Call a function when the state changes.
-            if (this.readyState === XMLHttpRequest.DONE && this.status === 200) {
-                var response = JSON.parse(xhr.response)
-                console.log("URL check session")
-                console.log(response)
-                document.getElementById("loggedin").innerHTML = response.loggedin
-                document.getElementById("injukebox").innerHTML = response.injukebox
+
+        checkinWithServer()
+
+        function checkinWithServer() {
+            var xhr = new XMLHttpRequest();
+            var urlCheckSession = "/checksession?jid=" + arr[1]
+            var sidCS = getCookie("sid")
+            if (sidCS) {
+                urlCheckSession += "&sid=" + sidCS
             }
+            xhr.open("GET", urlCheckSession, true);
+            xhr.onreadystatechange = function() { // Call a function when the state changes.
+                if (this.readyState === XMLHttpRequest.DONE && this.status === 200) {
+                    var response = JSON.parse(xhr.response)
+                    console.log("URL check session")
+                    console.log(response)
+                    document.getElementById("loggedin").innerHTML = response.loggedin
+                    document.getElementById("injukebox").innerHTML = response.injukebox
+                    console.log("Current queue")
+                    console.log(response.queue)
+                    constructQueueView(response.queue)
+                }
+            }
+            xhr.send();
         }
-        xhr.send();
 
 
         function login() {
@@ -80,6 +99,14 @@
             console.log("sid is: " + sid)
         }
 
+        function logout() {
+            setCookie("sid", "", -1)
+            const url = 'https://www.spotify.com/logout/'
+            const spotifyLogoutWindow = window.open(url, 'Spotify Logout', 'width=700,height=500,top=40,left=40')
+            setTimeout(() => spotifyLogoutWindow.close(), 2000)
+            checkinWithServer()
+        }
+
         var HOST = location.origin.replace(/^http/, 'ws')
         var connection = new WebSocket(HOST);
 
@@ -95,6 +122,7 @@
         function playJukeBox() {
             console.log("Play Jukebox")
             var url = "/playjukebox?jid=" + arr[1] + "&sid=" + getCookie("sid")
+            var xhr = new XMLHttpRequest();
             xhr.open("GET", url, true);
             xhr.onreadystatechange = function() { // Call a function when the state changes.
                 if (this.readyState === XMLHttpRequest.DONE && this.status === 200) {
@@ -110,8 +138,17 @@
             console.log(message)
             if (message.data) {
                 var data = JSON.parse(message.data)
-                if (data.injukebox) {
-                    document.getElementById("injukebox").innerHTML = data.injukebox
+                switch (data.message_type) {
+                    case 'register_response':
+                        document.getElementById("injukebox").innerHTML = data.injukebox
+                        break
+                    case 'queue_response':
+                        console.log('queue_response')
+                        console.log(data.queue)
+                        constructQueueView(data.queue)
+                        break
+                    default:
+                        break
                 }
             }
         }
@@ -144,6 +181,86 @@
                 indexOfSemi = cookie.length
             var res = cookie.substring(indexVal + withEquals.length, indexOfSemi)
             return res
+        }
+
+        function searchForSong() {
+            var searchVal = document.getElementById("search_song").value
+            console.log(searchVal)
+
+            var xhr = new XMLHttpRequest();
+            var url = "/searchforsong?query=" + searchVal + "&sid=" + getCookie("sid")
+            xhr.open("GET", url, true)
+            xhr.onreadystatechange = function() {
+                if (this.readyState === XMLHttpRequest.DONE || this.status === 200) {
+                    var res = JSON.parse(xhr.response)
+                    var songs = []
+                    for (var i = 0; i < res.length; i++) {
+                        var artists = ""
+                        for (var j = 0; j < res[i].artists.length; j++) {
+                            artists += res[i].artists[j].name
+                            if (j != res[i].artists.length - 1)
+                                artists += ", "
+                        }
+                        var song = {
+                            "name": res[i].name,
+                            "uri": res[i].uri,
+                            "artists": artists
+                        }
+                        songs.push(song)
+                    }
+                    constructResultsView(songs)
+                }
+            }
+            xhr.send()
+        }
+
+        function constructResultsView(songs) {
+            var container = document.getElementById("search_song_results")
+            for (var i = 0; i < songs.length; i++) {
+                var songName = songs[i].name + " - " + songs[i].artists
+                var div = document.createElement("div")
+                div.innerHTML = songName
+                div.id = i
+                div.style = "border: 1px solid black;"
+                container.appendChild(div)
+                var button = document.createElement("button")
+                button.innerHTML = "Add this song"
+                button.id = songs[i].uri + "&&" + songName
+                button.onclick = function(event) {
+                    addUriToQueue(event.srcElement.id)
+                    container.innerHTML = ""
+                }
+                div.appendChild(button)
+            }
+        }
+
+        function constructQueueView(queue) {
+            var container = document.getElementById("queue")
+            container.innerHTML = ""
+            for (var i = 0; i < queue.length; i++) {
+                var div = document.createElement("div")
+                div.innerHTML = queue[i].songname
+                div.id = i
+                div.style = "border: 1px solid black;"
+                container.appendChild(div)
+            }
+        }
+
+        function addUriToQueue(songid) {
+
+            var arr = songid.split("&&")
+            var uri = arr[0]
+            var songName = arr[1]
+            var url = "/addtoqueue?jid=" + jidGlobal + "&uri=" + uri + "&songname=" + songName
+            var xhr = new XMLHttpRequest()
+            xhr.open("GET", url, true);
+            xhr.onreadystatechange = function() { // Call a function when the state changes.
+                if (this.readyState === XMLHttpRequest.DONE && this.status === 200) {
+                    var response = JSON.parse(xhr.response)
+                    console.log(response)
+                }
+            }
+            xhr.send()
         }
 
         window.onbeforeunload = function() {

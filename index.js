@@ -26,6 +26,7 @@ var webSocketServer = require('websocket').server;
 var sessionToConnectMap = {}
 var sessionToIDMap = {}
 var jukeboxToSessionMap = {}
+var jukeboxToQueueMap = {}
 
 var client_id = '5cdc53405b224d4fa1d1b8eef875c3d8'; // Your client id
 var client_secret = 'fa990d3dd5cc491f94f38a8e57d19ebe'; // Your secret
@@ -360,11 +361,74 @@ app.get('/checksession', function(req, res) {
         if (sessionToConnectMap[sid])
             injukebox = true
     }
+
+    var queue = []
+    if (req.query.jid) {
+        if (jukeboxToQueueMap[req.query.jid]) {
+            queue = jukeboxToQueueMap[req.query.jid]
+        }
+    }
+
     res.send({
         "loggedin": loggedin,
-        "injukebox": injukebox
+        "injukebox": injukebox,
+        "queue": queue
     })
 })
+
+app.get('/searchforsong', function(req, res) {
+    console.log(req.query)
+    if (req.query.sid && req.query.query) {
+        var access = sessionToIDMap[req.query.sid].access
+        var response = searchForSongOnAccess(access, req.query.query, res)
+    }
+})
+
+app.get('/addtoqueue', function(req, res) {
+    if (req.query.jid && req.query.uri && req.query.songname) {
+        var jid = req.query.jid
+        var uri = req.query.uri
+        var songname = req.query.songname
+        if (!jukeboxToQueueMap[jid]) {
+            jukeboxToQueueMap[jid] = []
+        }
+        jukeboxToQueueMap[jid].push({ "uri": uri, "songname": songname })
+        console.log(jukeboxToQueueMap)
+        if (jukeboxToSessionMap[jid]) {
+            console.log(jukeboxToSessionMap)
+            console.log(Object.keys(jukeboxToSessionMap))
+            for (var i = 0; i < jukeboxToSessionMap[jid].length; i++) {
+                var sid = jukeboxToSessionMap[jid][i]
+                if (sessionToConnectMap[sid]) {
+                    console.log("Connection found")
+                    var conn = sessionToConnectMap[sid]
+                    var message = {
+                        "message_type": "queue_response",
+                        "queue": jukeboxToQueueMap[jid]
+                    }
+                    conn.send(JSON.stringify(message))
+                }
+            }
+        }
+    }
+    res.send({})
+})
+
+function searchForSongOnAccess(access, query, res) {
+    var uris = ["spotify:track:38loOBAgDgCW4pFWyH9cey"]
+
+    var options = {
+        url: 'https://api.spotify.com/v1/search?q=' + query + '&type=track&limit=8',
+        headers: { 'Authorization': 'Bearer ' + access },
+    };
+
+    request.get(options, function(error, response, body) {
+        console.log(error)
+        console.log(JSON.parse(response.body).tracks)
+            //console.log(JSON.parse(response))
+        res.send(JSON.parse(response.body).tracks.items)
+    });
+}
 
 app.get('/refresh_token', function(req, res) {
 
@@ -422,7 +486,8 @@ wsServer.on('request', function(request) {
                 sessionToConnectMap[data.sid] = connection
 
                 var injukebox = sessionToConnectMap[data.sid] ? true : false;
-                connection.sendUTF(JSON.stringify({ "injukebox": injukebox }))
+
+                connection.sendUTF(JSON.stringify({ "message_type": "register_response", "injukebox": injukebox }))
 
                 break
             case 'closing':

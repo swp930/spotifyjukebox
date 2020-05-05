@@ -13,7 +13,7 @@
         <div id="jid"></div>
     </div>
     <button onclick="login()">Login</button>
-    <button onclick="connectToJukeBox()">Connect to jukebox</button>
+    <button id="connectToJukeBox" onclick="connectToJukeBox()">Connect to jukebox</button>
     <button onclick="playJukeBox()">Play music</button>
     <button onclick="logout()">Logout</button>
     <p>Logged in: </p>
@@ -142,12 +142,16 @@
         var connection = new WebSocket(HOST);
 
         function connectToJukeBox() {
-            var connectObj = {
-                "message_type": "register",
-                "jid": arr[1],
-                "sid": getCookie("sid")
+            if (getCookie("sid") == null || getCookie("sid") == "") {
+                alert("Please login first")
+            } else {
+                var connectObj = {
+                    "message_type": "register",
+                    "jid": arr[1],
+                    "sid": getCookie("sid")
+                }
+                connection.send(JSON.stringify(connectObj))
             }
-            connection.send(JSON.stringify(connectObj))
         }
 
         function playJukeBox() {

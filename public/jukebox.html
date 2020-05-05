@@ -20,7 +20,7 @@
     <p>In jukebox: </p>
     <p id="injukebox"></p>
     <p>Search for a song</p>
-    <input id="search_song" type="search"> <button onclick="searchForSong()">Search</button>
+    <input id="search_song" type="search" oninput="searchChange()"> <button onclick="searchForSong()">Search</button>
     <div id="search_song_results"></div>
 
     <button onclick="playSong()">Start jukebox</button>
@@ -277,6 +277,11 @@
             return res
         }
 
+        function searchChange() {
+            var container = document.getElementById("search_song_results")
+            container.innerHTML = ""
+        }
+
         function searchForSong() {
             var searchVal = document.getElementById("search_song").value
             console.log(searchVal)
@@ -311,6 +316,7 @@
 
         function constructResultsView(songs) {
             var container = document.getElementById("search_song_results")
+            container.innerHTML = ""
             for (var i = 0; i < songs.length; i++) {
                 var songName = songs[i].name + " - " + songs[i].artists
                 var duration = songs[i].duration

@@ -24,6 +24,10 @@
     <input id="search_song" type="search"> <button onclick="searchForSong()">Search</button>
     <div id="search_song_results"></div>
 
+    <button onclick="playSong()">Start jukebox</button>
+    <button onclick="skipSong()">Skip song</button>
+    <p>Remaining time is:</p>
+    <div id="remaining_time"></div>
     <p>Current queue is: </p>
     <div id="queue"></div>
 
@@ -32,10 +36,12 @@
         var regex_temp = /\?jid=(\S*)/
         var arr = window.location.search.match(regex_temp)
         var song_results = []
+        var intervalVar
 
         console.log(arr[1])
         var jidGlobal = arr[1]
         document.getElementById("jid").innerHTML = jidGlobal
+        var isOwner = false
 
         var xhr = new XMLHttpRequest();
         xhr.open("POST", "/registerjukebox", true);
@@ -73,6 +79,31 @@
                 }
             }
             xhr.send();
+        }
+
+        checkinDuration()
+
+        function checkinDuration() {
+            var url = "/checkinduration?jid=" + jidGlobal
+            console.log(url)
+            var xhr = new XMLHttpRequest();
+            xhr.open("GET", url, true);
+            xhr.onreadystatechange = function() { // Call a function when the state changes.
+                if (this.readyState === XMLHttpRequest.DONE && this.status === 200) {
+                    var response = JSON.parse(xhr.response)
+                    console.log(response)
+                    console.log(response.item.duration_ms)
+                    console.log(response.progress_ms)
+                    var remaining_time = response.item.duration_ms - response.progress_ms
+                    console.log(remaining_time)
+                    document.getElementById("remaining_time").innerHTML = Math.round(parseInt(remaining_time) / 1000)
+                    clearInterval(intervalVar)
+                    intervalVar = setInterval(function() {
+                        decrementTime()
+                    }, 1000);
+                }
+            }
+            xhr.send()
         }
 
 
@@ -133,6 +164,35 @@
             xhr.send()
         }
 
+        function playSong() {
+            console.log("Play song")
+            var url = "/playqueue?jid=" + jidGlobal
+            xhr.open("GET", url, true);
+            xhr.onreadystatechange = function() { // Call a function when the state changes.
+                if (this.readyState === XMLHttpRequest.DONE && this.status === 200) {
+                    var response = JSON.parse(xhr.response)
+                    console.log(response)
+                }
+            }
+            xhr.send()
+        }
+
+        function skipSong() {
+            console.log("Skip song")
+            var xhr = new XMLHttpRequest();
+            var url = "/skipsong?jid=" + jidGlobal
+            xhr.open("GET", url, true);
+            xhr.onreadystatechange = function() { // Call a function when the state changes.
+                if (this.readyState === XMLHttpRequest.DONE && this.status === 200) {
+                    var response = JSON.parse(xhr.response)
+                    console.log(response)
+                }
+            }
+            xhr.send()
+        }
+
+
+
         connection.onmessage = function(message) {
             console.log("message is ")
             console.log(message)
@@ -141,16 +201,41 @@
                 switch (data.message_type) {
                     case 'register_response':
                         document.getElementById("injukebox").innerHTML = data.injukebox
+                        isOwner = data.isowner
+                        checkinDuration()
                         break
                     case 'queue_response':
                         console.log('queue_response')
                         console.log(data.queue)
                         constructQueueView(data.queue)
                         break
+                    case 'length_response':
+                        document.getElementById("remaining_time").innerHTML = Math.round(parseInt(data.song_length) / 1000)
+                        clearInterval(intervalVar)
+                        intervalVar = setInterval(function() {
+                            decrementTime()
+                        }, 1000);
+                        break
                     default:
+                        console.log(data)
                         break
                 }
             }
+        }
+
+        var rt = document.getElementById("remaining_time")
+
+        function decrementTime() {
+            var time = parseInt(rt.innerHTML)
+            time = time - 1
+            rt.innerHTML = time
+            if (time == 0) {
+                clearInterval(intervalVar)
+                if (isOwner) {
+                    skipSong()
+                }
+            }
+
         }
 
         function guid() {
@@ -204,7 +289,8 @@
                         var song = {
                             "name": res[i].name,
                             "uri": res[i].uri,
-                            "artists": artists
+                            "artists": artists,
+                            "duration": res[i].duration_ms
                         }
                         songs.push(song)
                     }
@@ -218,6 +304,7 @@
             var container = document.getElementById("search_song_results")
             for (var i = 0; i < songs.length; i++) {
                 var songName = songs[i].name + " - " + songs[i].artists
+                var duration = songs[i].duration
                 var div = document.createElement("div")
                 div.innerHTML = songName
                 div.id = i
@@ -225,7 +312,7 @@
                 container.appendChild(div)
                 var button = document.createElement("button")
                 button.innerHTML = "Add this song"
-                button.id = songs[i].uri + "&&" + songName
+                button.id = songs[i].uri + "&&" + songName + "&&" + duration
                 button.onclick = function(event) {
                     addUriToQueue(event.srcElement.id)
                     container.innerHTML = ""
@@ -251,7 +338,8 @@
             var arr = songid.split("&&")
             var uri = arr[0]
             var songName = arr[1]
-            var url = "/addtoqueue?jid=" + jidGlobal + "&uri=" + uri + "&songname=" + songName
+            var duration = arr[2]
+            var url = "/addtoqueue?jid=" + jidGlobal + "&uri=" + uri + "&songname=" + songName + "&duration=" + duration
             var xhr = new XMLHttpRequest()
             xhr.open("GET", url, true);
             xhr.onreadystatechange = function() { // Call a function when the state changes.
@@ -269,6 +357,7 @@
                 "jid": arr[1],
                 "sid": getCookie("sid")
             }
+            setCookie("sid", "", -2)
             connection.send(JSON.stringify(connectObj))
         }
     </script>

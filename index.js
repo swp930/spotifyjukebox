@@ -324,9 +324,10 @@ app.get('/playjukebox', function(req, res) {
     var uris = ["spotify:track:38loOBAgDgCW4pFWyH9cey"]
     for (var i = 0; i < sids.length; i++) {
         if (sessionToIDMap[sids[i]]) {
-            var access_token = sessionToIDMap[sids[i]].access
-            access.push(access_token)
-            playSongOnAccess(access, uris)
+            //var access_token = sessionToIDMap[sids[i]].access
+            //access.push(access_token)
+            //playSongOnAccess(access, uris)
+            playSongOnSid(sid, access)
         }
     }
 
@@ -376,8 +377,9 @@ app.get('/playqueue', function(req, res) {
         console.log(songuri)
         for (var i = 0; i < jukeboxToSessionMap[jid].length; i++) {
             var sid = jukeboxToSessionMap[jid][i]
-            var access_token = sessionToIDMap[sid].access
-            playSongOnAccess(access_token, [songuri])
+                //var access_token = sessionToIDMap[sid].access
+                //playSongOnAccess(access_token, [songuri])
+            playSongOnSid(sid, [songuri])
         }
         sendBackSongLength(jid, songlength)
     }
@@ -405,7 +407,8 @@ function sendBackSongLength(jid, length) {
     }
 }
 
-function playSongOnAccess(access, uris) {
+function playSongOnSid(sid, uris) {
+    var access = sessionToIDMap[sid].access
 
     var options = {
         url: 'https://api.spotify.com/v1/me/player/play',
@@ -420,8 +423,18 @@ function playSongOnAccess(access, uris) {
         console.log(error)
             //console.log(response.body)
         console.log(response)
-        if (response.body.error) {
-            console.log(response.body.error)
+        if (response.body) {
+            if (response.body.error) {
+                console.log(response.body.error)
+                if (sessionToConnectMap[sid]) {
+                    var conn = sessionToConnectMap[sid]
+                    var message = {
+                        "message_type": "play_error",
+                        "error": response.body.error
+                    }
+                    conn.send(JSON.stringify(message))
+                }
+            }
         }
         //console.log(body)
     });
@@ -441,8 +454,9 @@ app.get('/skipsong', function(req, res) {
                 console.log(songuri)
                 for (var i = 0; i < jukeboxToSessionMap[jid].length; i++) {
                     var sid = jukeboxToSessionMap[jid][i]
-                    var access_token = sessionToIDMap[sid].access
-                    playSongOnAccess(access_token, [songuri])
+                        //var access_token = sessionToIDMap[sid].access
+                        //playSongOnAccess(access_token, [songuri])
+                    playSongOnSid(sid, [songuri])
                 }
                 sendBackSongLength(jid, songlength)
             }

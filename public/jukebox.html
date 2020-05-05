@@ -20,7 +20,7 @@
     <p>In jukebox: </p>
     <p id="injukebox"></p>
     <p>Search for a song</p>
-    <input id="search_song" type="search" oninput="searchChange()"> <button onclick="searchForSong()">Search</button>
+    <input id="search_song" type="search" oninput="searchChange()" onkeypress="handleSearchKey(event);"> <button onclick="searchForSong()">Search</button>
     <div id="search_song_results"></div>
 
     <button onclick="playSong()">Start jukebox</button>
@@ -222,6 +222,14 @@
                             decrementTime()
                         }, 1000);
                         break
+                    case 'play_error':
+                        console.log(data.error)
+                        if (data.error.reason == "NO_ACTIVE_DEVICE") {
+                            alert("No active device found, please play a song in the background and try again")
+                        } else {
+                            alert(data.error.message)
+                        }
+                        break
                     default:
                         console.log(data)
                         break
@@ -280,6 +288,12 @@
         function searchChange() {
             var container = document.getElementById("search_song_results")
             container.innerHTML = ""
+        }
+
+        function handleSearchKey(event) {
+            if (event.key == "Enter") {
+                searchForSong()
+            }
         }
 
         function searchForSong() {

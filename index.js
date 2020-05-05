@@ -419,8 +419,11 @@ function playSongOnAccess(access, uris) {
     request.put(options, function(error, response, body) {
         console.log(error)
             //console.log(response.body)
-            //console.log(response)
-            //console.log(body)
+        console.log(response)
+        if (response.body.error) {
+            console.log(response.body.error)
+        }
+        //console.log(body)
     });
 }
 
@@ -528,9 +531,9 @@ function searchForSongOnAccess(access, query, res) {
     };
 
     request.get(options, function(error, response, body) {
+        console.log("searchForSongOnAccess")
         console.log(error)
             //console.log(JSON.parse(response.body).tracks)
-            //console.log(JSON.parse(response))
         res.send(JSON.parse(response.body).tracks.items)
     });
 }

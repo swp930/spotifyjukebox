@@ -36,6 +36,7 @@
         var arr = window.location.search.match(regex_temp)
         var song_results = []
         var intervalVar
+        var lastCalled
 
         console.log(arr[1])
         var jidGlobal = arr[1]
@@ -97,6 +98,7 @@
                     console.log(remaining_time)
                     document.getElementById("remaining_time").innerHTML = Math.round(parseInt(remaining_time) / 1000)
                     clearInterval(intervalVar)
+                    lastCalled = (new Date()).getTime()
                     intervalVar = setInterval(function() {
                         decrementTime()
                     }, 1000);
@@ -215,6 +217,7 @@
                     case 'length_response':
                         document.getElementById("remaining_time").innerHTML = Math.round(parseInt(data.song_length) / 1000)
                         clearInterval(intervalVar)
+                        lastCalled = (new Date()).getTime()
                         intervalVar = setInterval(function() {
                             decrementTime()
                         }, 1000);
@@ -230,9 +233,12 @@
 
         function decrementTime() {
             var time = parseInt(rt.innerHTML)
-            time = time - 1
+            var currTime = (new Date()).getTime()
+            var diff = Math.round((currTime - lastCalled) / 1000)
+            time = time - diff
+            lastCalled = currTime
             rt.innerHTML = time
-            if (time == 0) {
+            if (time <= 0) {
                 clearInterval(intervalVar)
                 if (isOwner) {
                     skipSong()

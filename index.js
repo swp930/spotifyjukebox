@@ -94,8 +94,8 @@ app.get('/jukebox', function(req, res) {
 })
 
 app.post('/registerjukebox', function(req, res) {
-    console.log(req.body)
-    console.log(req.body.jid)
+    //console.log(req.body)
+    //console.log(req.body.jid)
     var jid = req.body.jid
     pool
         .connect()
@@ -104,17 +104,17 @@ app.post('/registerjukebox', function(req, res) {
                 .query('SELECT id from jukebox where id = $1', [jid])
                 .then(res => {
                     client.release()
-                    console.log(res.rows)
-                    console.log("success")
+                        //console.log(res.rows)
+                        //console.log("success")
                     if (res.rows.length == 0) {
-                        console.log("No such jukebox exists")
+                        //console.log("No such jukebox exists")
                         pool.connect()
                             .then(client2 => {
                                 return client2
                                     .query('INSERT INTO jukebox (id) VALUES ($1)', [jid])
                                     .then(res => {
                                         client2.release()
-                                        console.log(res.rows)
+                                            //console.log(res.rows)
                                     })
                                     .catch(err => {
                                         client2.release()
@@ -122,13 +122,13 @@ app.post('/registerjukebox', function(req, res) {
                                     })
                             })
                     } else {
-                        console.log("Jukebox for the given id exists")
+                        //console.log("Jukebox for the given id exists")
                     }
                 })
                 .catch(err => {
                     client.release()
-                    console.log(err.stack)
-                    console.log("failure")
+                        //console.log(err.stack)
+                        //console.log("failure")
                 })
         })
     res.send(req.body)
@@ -153,13 +153,13 @@ app.get('/login', function(req, res) {
     );*/
 
     var url = 'https://accounts.spotify.com/authorize?' + querystring.stringify({
-        response_type: 'code',
-        client_id: client_id,
-        scope: scope,
-        redirect_uri: redirect_uri,
-        state: state,
-    })
-    console.log(url)
+            response_type: 'code',
+            client_id: client_id,
+            scope: scope,
+            redirect_uri: redirect_uri,
+            state: state,
+        })
+        //console.log(url)
 
     res.send({ "url": url })
 });
@@ -169,13 +169,13 @@ app.get('/callback', function(req, res) {
     // your application requests refresh and access tokens
     // after checking the state parameter
 
-    console.log("Query vals")
-    console.log(req.query)
+    //console.log("Query vals")
+    //console.log(req.query)
     var code = req.query.code || null;
     var state = req.query.state || null;
     var stateVal = JSON.parse(state)
-    console.log("State is: ")
-    console.log(stateVal)
+        //console.log("State is: ")
+        //console.log(stateVal)
     var jid = stateVal.jid
     var sid = stateVal.sid
     console.log("jid")
@@ -224,7 +224,7 @@ app.get('/callback', function(req, res) {
 
                 // use the access token to access the Spotify Web API
                 request.get(options, function(error, response, body) {
-                    //console.log(body);
+                    console.log(body);
                 });
 
                 // we can also pass the token to the browser to make requests from there
@@ -315,21 +315,21 @@ app.get('/play', function(req, res) {
 })
 
 app.get('/playjukebox', function(req, res) {
-    console.log(req.query)
+    //console.log(req.query)
     var jid = req.query.jid
     var sids = jukeboxToSessionMap[jid]
     console.log("sids")
     console.log(sids)
     var access = []
-    for (var i = 0; i < sids.length; i++) {
-        var access_token = sessionToIDMap[sids[i]].access
-        access.push(access_token)
-    }
-    console.log(access)
     var uris = ["spotify:track:38loOBAgDgCW4pFWyH9cey"]
-    for (var i = 0; i < access.length; i++) {
-        playSongOnAccess(access[i], uris)
+    for (var i = 0; i < sids.length; i++) {
+        if (sessionToIDMap[sids[i]]) {
+            var access_token = sessionToIDMap[sids[i]].access
+            access.push(access_token)
+            playSongOnAccess(access, uris)
+        }
     }
+
     res.send({})
 })
 
@@ -339,12 +339,12 @@ app.get('/checkinduration', function(req, res) {
     var jid = req.query.jid
     if (jid && jukeboxToSessionMap[jid] && jukeboxToSessionMap[jid].length > 0) {
         var sid = jukeboxToSessionMap[jid][0]
-        console.log(sid)
+            //console.log(sid)
         var access = sessionToIDMap[sid].access
             //console.log(access)
         checkinDuration(access, res)
     } else {
-        console.log(jukeboxToSessionMap[jid])
+        //console.log(jukeboxToSessionMap[jid])
         res.send({})
     }
 
@@ -359,9 +359,9 @@ function checkinDuration(access, res) {
 
     request.get(options, function(error, response, body) {
         console.log(error)
-        console.log(response)
-        console.log(response.body)
-        console.log(body)
+            //console.log(response)
+            //console.log(response.body)
+            //console.log(body)
         res.send(response.body)
     });
 }
@@ -385,20 +385,20 @@ app.get('/playqueue', function(req, res) {
 })
 
 function sendBackSongLength(jid, length) {
-    console.log(jid)
-    console.log(length)
+    //console.log(jid)
+    //console.log(length)
     if (jukeboxToSessionMap[jid]) {
-        console.log(jukeboxToSessionMap)
+        //console.log(jukeboxToSessionMap)
         for (var i = 0; i < jukeboxToSessionMap[jid].length; i++) {
             var sid = jukeboxToSessionMap[jid][i]
             if (sessionToConnectMap[sid]) {
                 console.log("Connection found")
                 var conn = sessionToConnectMap[sid]
                 var message = {
-                    "message_type": "length_response",
-                    "song_length": length
-                }
-                console.log(message)
+                        "message_type": "length_response",
+                        "song_length": length
+                    }
+                    //console.log(message)
                 conn.send(JSON.stringify(message))
             }
         }
@@ -418,7 +418,7 @@ function playSongOnAccess(access, uris) {
 
     request.put(options, function(error, response, body) {
         console.log(error)
-        console.log(response.body)
+            //console.log(response.body)
             //console.log(response)
             //console.log(body)
     });
@@ -529,7 +529,7 @@ function searchForSongOnAccess(access, query, res) {
 
     request.get(options, function(error, response, body) {
         console.log(error)
-        console.log(JSON.parse(response.body).tracks)
+            //console.log(JSON.parse(response.body).tracks)
             //console.log(JSON.parse(response))
         res.send(JSON.parse(response.body).tracks.items)
     });

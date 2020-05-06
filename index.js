@@ -222,7 +222,7 @@ app.get('/callback', function(req, res) {
                 request.get(options, function(error, response, body) {
                     var urlRedirect = '/jukebox?jid=' + jid
                     if (body.id) {
-                        console.log(body.id)
+                        console.log("sid is: " + body.id)
                         urlRedirect += "&sid=" + body.id
                         sessionToIDMap[body.id] = id
                     }
@@ -467,6 +467,7 @@ app.get('/skipsong', function(req, res) {
 })
 
 app.get('/checksession', function(req, res) {
+    console.log("Checksession")
     console.log(req.query)
     var loggedin = false
     var injukebox = false

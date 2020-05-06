@@ -188,7 +188,12 @@
                     case 'queue_response':
                         console.log('queue_response')
                         console.log(data.queue)
-                        constructQueueView(data.queue)
+                        if (data.queue.length > 0) {
+                            constructQueueView(data.queue)
+                        } else {
+                            clearInterval(intervalVar)
+                            document.getElementById("remaining_time").innerHTML = ""
+                        }
                         break
                     case 'length_response':
                         document.getElementById("remaining_time").innerHTML = Math.round(parseInt(data.song_length) / 1000)

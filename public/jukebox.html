@@ -39,7 +39,7 @@
         var lastCalled
 
         var regexJID = /[\S]*\?jid=([\dA-z]*[-][\dA-z]*[-][\dA-z]*)/
-        var regexSID = /[\S]*sid=(\d*)/
+        var regexSID = /[\S]*sid=([\dA-z]*)/
 
         var jidGlobal = window.location.search.match(regexJID)[1]
         var sidGlobalArr = window.location.search.match(regexSID)

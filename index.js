@@ -177,11 +177,8 @@ app.get('/callback', function(req, res) {
         //console.log("State is: ")
         //console.log(stateVal)
     var jid = stateVal.jid
-    var sid = stateVal.sid
     console.log("jid")
     console.log(jid)
-    console.log("sid")
-    console.log(sid)
     var storedState = req.cookies ? req.cookies[stateKey] : null;
 
     if (state === null || state !== storedState) {
@@ -214,7 +211,6 @@ app.get('/callback', function(req, res) {
                     "access": access_token,
                     "refresh": refresh_token
                 }
-                sessionToIDMap[sid] = id
 
                 var options = {
                     url: 'https://api.spotify.com/v1/me',
@@ -224,7 +220,13 @@ app.get('/callback', function(req, res) {
 
                 // use the access token to access the Spotify Web API
                 request.get(options, function(error, response, body) {
-                    console.log(body);
+                    var urlRedirect = '/jukebox?jid=' + jid
+                    if (body.id) {
+                        console.log(body.id)
+                        urlRedirect += "&sid=" + body.id
+                        sessionToIDMap[body.id] = id
+                    }
+                    res.redirect(urlRedirect)
                 });
 
                 // we can also pass the token to the browser to make requests from there
@@ -233,8 +235,7 @@ app.get('/callback', function(req, res) {
                         access_token: access_token,
                         refresh_token: refresh_token
                     }));*/
-                var urlRedirect = '/jukebox?jid=' + jid
-                res.redirect(urlRedirect)
+
             } else {
                 res.redirect('/#' +
                     querystring.stringify({
@@ -472,10 +473,22 @@ app.get('/checksession', function(req, res) {
     var isOwner = false
     if (req.query.sid) {
         var sid = req.query.sid
-        if (sessionToIDMap[sid])
+        if (sessionToIDMap[sid]) {
+            console.log(sid)
+            console.log(sessionToIDMap[sid])
             loggedin = true
-        if (sessionToConnectMap[sid])
-            injukebox = true
+        }
+
+        if (jukeboxToSessionMap[req.query.jid]) {
+            for (var i = 0; i < jukeboxToSessionMap[req.query.jid].length; i++) {
+                if (jukeboxToSessionMap[req.query.jid][i] === req.query.sid) {
+                    if (sessionToConnectMap[sid]) {
+                        injukebox = true
+                    }
+                    break
+                }
+            }
+        }
     }
 
     var queue = []
@@ -599,50 +612,76 @@ wsServer.on('request', function(request) {
         switch (data.message_type) {
             case 'register':
                 console.log("Registering new connection")
-                console.log(data.jid)
-                console.log(data.sid)
-                if (!jukeboxToSessionMap[data.jid]) {
-                    jukeboxToSessionMap[data.jid] = []
+
+                if (data.sid && data.sid !== '' && data.jid && data.jid !== '') {
+                    var isInJukebox = false
+
+                    if (jukeboxToSessionMap[data.jid]) {
+                        for (var i = 0; i < jukeboxToSessionMap[data.jid].length; i++) {
+                            if (jukeboxToSessionMap[data.jid][i] === data.sid) {
+                                isInJukebox = true
+                                break
+                            }
+                        }
+                    }
+
+                    if (isInJukebox) {
+                        console.log("Connection already exists!")
+                        console.log("Sid is " + data.sid)
+                        console.log("Jukebox map")
+                        console.log(jukeboxToSessionMap)
+                        connection.sendUTF(JSON.stringify({ "message_type": "register_error", "injukebox": false, "isowner": false, "message": "jukebox already exists" }))
+                    } else {
+                        console.log(data.jid)
+                        console.log(data.sid)
+                        if (!jukeboxToSessionMap[data.jid]) {
+                            jukeboxToSessionMap[data.jid] = []
+                        }
+                        jukeboxToSessionMap[data.jid].push(data.sid)
+                        var isOwner = false
+                        if (jukeboxToSessionMap[data.jid].length == 1) {
+                            jukeboxToSidOwnerMap[data.jid] = data.sid
+                            isOwner = true
+                        }
+
+                        sessionToConnectMap[data.sid] = connection
+
+                        var injukebox = sessionToConnectMap[data.sid] ? true : false;
+
+                        connection.sendUTF(JSON.stringify({ "message_type": "register_response", "injukebox": injukebox, "isowner": isOwner }))
+                    }
+
                 }
-                jukeboxToSessionMap[data.jid].push(data.sid)
-                var isOwner = false
-                if (jukeboxToSessionMap[data.jid].length == 1) {
-                    jukeboxToSidOwnerMap[data.jid] = data.sid
-                    isOwner = true
-                }
-
-                sessionToConnectMap[data.sid] = connection
-
-                var injukebox = sessionToConnectMap[data.sid] ? true : false;
-
-                connection.sendUTF(JSON.stringify({ "message_type": "register_response", "injukebox": injukebox, "isowner": isOwner }))
 
                 break
             case 'closing':
                 console.log("Connection closing")
                 console.log(data.jid)
                 console.log(data.sid)
-                if (jukeboxToSessionMap[data.jid]) {
-                    for (var i = 0; i < jukeboxToSessionMap[data.jid].length; i++) {
-                        if (jukeboxToSessionMap[data.jid][i] === data.sid) {
-                            jukeboxToSessionMap[data.jid].splice(i, 1)
-                            break
+                if (data.sid && data.sid !== '' && data.jid && data.jid !== '') {
+                    if (jukeboxToSessionMap[data.jid]) {
+                        for (var i = 0; i < jukeboxToSessionMap[data.jid].length; i++) {
+                            if (jukeboxToSessionMap[data.jid][i] === data.sid) {
+                                jukeboxToSessionMap[data.jid].splice(i, 1)
+                                break
+                            }
+                        }
+                        if (jukeboxToSidOwnerMap[data.jid] === data.sid) {
+                            console.log("Owner is leaving")
+                            jukeboxToSidOwnerMap[data.jid] = ""
+                            if (jukeboxToSessionMap[data.jid].length > 0) {
+                                console.log(jukeboxToSessionMap[data.jid])
+                                jukeboxToSidOwnerMap[data.jid] = jukeboxToSessionMap[data.jid][0]
+                                console.log("New owner has been elected")
+                                var conn = sessionToConnectMap[jukeboxToSidOwnerMap[data.jid]]
+                                conn.sendUTF(JSON.stringify({ "message_type": "register_response", "injukebox": true, "isowner": true }))
+                            }
                         }
                     }
-                    if (jukeboxToSidOwnerMap[data.jid] === data.sid) {
-                        console.log("Owner is leaving")
-                        jukeboxToSidOwnerMap[data.jid] = ""
-                        if (jukeboxToSessionMap[data.jid].length > 0) {
-                            console.log(jukeboxToSessionMap[data.jid])
-                            jukeboxToSidOwnerMap[data.jid] = jukeboxToSessionMap[data.jid][0]
-                            console.log("New owner has been elected")
-                            var conn = sessionToConnectMap[jukeboxToSidOwnerMap[data.jid]]
-                            conn.sendUTF(JSON.stringify({ "message_type": "register_response", "injukebox": true, "isowner": true }))
-                        }
-                    }
+                    delete sessionToConnectMap[data.sid]
+                    delete sessionToIDMap[data.sid]
+                    console.log(sessionToIDMap)
                 }
-
-                delete sessionToConnectMap[data.sid]
                 break
             default:
                 break

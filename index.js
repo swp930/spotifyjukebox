@@ -54,22 +54,6 @@ const pool = new Pool({
     connectionString: db_url,
 })
 
-
-/**
- * Generates a random string containing numbers and letters
- * @param  {number} length The length of the string
- * @return {string} The generated string
- */
-var generateRandomString = function(length) {
-    var text = '';
-    var possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-
-    for (var i = 0; i < length; i++) {
-        text += possible.charAt(Math.floor(Math.random() * possible.length));
-    }
-    return text;
-};
-
 var stateKey = 'spotify_auth_state';
 
 var app = express();
@@ -79,80 +63,25 @@ app.use(express.static(__dirname + '/public'))
     .use(cookieParser())
     .use(bodyParser.json())
 
-app.get('/jukebox', function(req, res) {
-    console.log('/jukebox')
-    console.log('query parameters:')
-    console.log(req.query)
-    var options = {
-        root: path.join(__dirname, "public")
+app.get('/addtoqueue', function(req, res) {
+    console.log('/addtoqueue')
+    console.log('req.query.jid')
+    console.log(req.query.jid)
+    if (req.query.jid && req.query.uri && req.query.songname) {
+        var jid = req.query.jid
+        var uri = req.query.uri
+        var songname = req.query.songname
+        var duration = req.query.duration
+        if (!jukeboxToQueueMap[jid]) {
+            jukeboxToQueueMap[jid] = []
+        }
+        jukeboxToQueueMap[jid].push({ "uri": uri, "songname": songname, "duration": duration })
+        console.log("New queue")
+        console.log(jukeboxToQueueMap[jid])
+        updateQueue(jid)
     }
-    res.sendFile('jukebox.html', options)
+    res.send({})
 })
-
-app.post('/registerjukebox', function(req, res) {
-    console.log('/registerjukebox')
-    console.log("Query parameters")
-    console.log(req.query)
-    var jid = req.body.jid
-    pool
-        .connect()
-        .then(client => {
-            return client
-                .query('SELECT id from jukebox where id = $1', [jid])
-                .then(res => {
-                    client.release()
-                        //console.log(res.rows)
-                        //console.log("success")
-                    if (res.rows.length == 0) {
-                        //console.log("No such jukebox exists")
-                        pool.connect()
-                            .then(client2 => {
-                                return client2
-                                    .query('INSERT INTO jukebox (id) VALUES ($1)', [jid])
-                                    .then(res => {
-                                        client2.release()
-                                            //console.log(res.rows)
-                                    })
-                                    .catch(err => {
-                                        client2.release()
-                                        console.log(err.stack)
-                                    })
-                            })
-                    } else {
-                        //console.log("Jukebox for the given id exists")
-                    }
-                })
-                .catch(err => {
-                    client.release()
-                        //console.log(err.stack)
-                        //console.log("failure")
-                })
-        })
-
-    res.send(req.body)
-})
-
-app.get('/login', function(req, res) {
-
-    var state = JSON.stringify(req.query);
-    res.cookie(stateKey, state);
-    console.log('/login')
-    console.log('req.query')
-    console.log(req.query)
-
-    var scope = 'user-read-private user-read-email user-modify-playback-state user-read-currently-playing';
-
-    var url = 'https://accounts.spotify.com/authorize?' + querystring.stringify({
-        response_type: 'code',
-        client_id: client_id,
-        scope: scope,
-        redirect_uri: redirect_uri,
-        state: state,
-    })
-    console.log("url: " + url)
-
-    res.send({ "url": url })
-});
 
 app.get('/callback', function(req, res) {
 
@@ -230,6 +159,106 @@ app.get('/callback', function(req, res) {
             }
         });
     }
+});
+
+app.get('/checkinduration', function(req, res) {
+    console.log('/checkinduration')
+    console.log('req.query')
+    console.log(req.query)
+    var jid = req.query.jid
+    if (jid && jukeboxToSessionMap[jid] && jukeboxToSessionMap[jid].length > 0) {
+        var sid = jukeboxToSessionMap[jid][0]
+        var access = sessionToIDMap[sid].access
+        checkinDuration(access, res)
+    } else {
+        res.send({})
+    }
+})
+
+app.get('/checksession', function(req, res) {
+    console.log("Checksession")
+    console.log("req.query")
+    console.log(req.query)
+    var loggedin = false
+    var injukebox = false
+    var isOwner = false
+    if (req.query.sid) {
+        var sid = req.query.sid
+        if (sessionToIDMap[sid]) {
+            console.log("sid")
+            console.log(sid)
+            console.log("sessionToIDMap[sid]")
+            console.log(sessionToIDMap[sid])
+            loggedin = true
+        }
+
+        if (jukeboxToSessionMap[req.query.jid]) {
+            for (var i = 0; i < jukeboxToSessionMap[req.query.jid].length; i++) {
+                if (jukeboxToSessionMap[req.query.jid][i] === req.query.sid) {
+                    console.log("jukeboxToSessionMap[req.query.jid][i]")
+                    console.log(jukeboxToSessionMap[req.query.jid][i])
+                    console.log("req.query.sid")
+                    console.log(req.query.sid)
+                    if (sessionToConnectMap[sid]) {
+                        console.log("sessionToConnectMap[sid]")
+                        console.log(sessionToConnectMap[sid])
+                        injukebox = true
+                    }
+                    break
+                }
+            }
+        }
+    }
+
+    var queue = []
+    if (req.query.jid) {
+        if (jukeboxToQueueMap[req.query.jid]) {
+            queue = jukeboxToQueueMap[req.query.jid]
+        }
+    }
+
+    var resBody = {
+        "loggedin": loggedin,
+        "injukebox": injukebox,
+        "queue": queue
+    }
+
+    console.log("resBody")
+    console.log(resBody)
+
+    res.send(resBody)
+})
+
+app.get('/jukebox', function(req, res) {
+    console.log('/jukebox')
+    console.log('query parameters:')
+    console.log(req.query)
+    var options = {
+        root: path.join(__dirname, "public")
+    }
+    res.sendFile('jukebox.html', options)
+})
+
+app.get('/login', function(req, res) {
+
+    var state = JSON.stringify(req.query);
+    res.cookie(stateKey, state);
+    console.log('/login')
+    console.log('req.query')
+    console.log(req.query)
+
+    var scope = 'user-read-private user-read-email user-modify-playback-state user-read-currently-playing';
+
+    var url = 'https://accounts.spotify.com/authorize?' + querystring.stringify({
+        response_type: 'code',
+        client_id: client_id,
+        scope: scope,
+        redirect_uri: redirect_uri,
+        state: state,
+    })
+    console.log("url: " + url)
+
+    res.send({ "url": url })
 });
 
 app.get('/pause', function(req, res) {
@@ -320,21 +349,128 @@ app.get('/playjukebox', function(req, res) {
     res.send({})
 })
 
-app.get('/checkinduration', function(req, res) {
-    console.log('/checkinduration')
+app.get('/playqueue', function(req, res) {
+    console.log("/playqueue")
     console.log(req.query)
     var jid = req.query.jid
-    if (jid && jukeboxToSessionMap[jid] && jukeboxToSessionMap[jid].length > 0) {
-        var sid = jukeboxToSessionMap[jid][0]
-            //console.log(sid)
-        var access = sessionToIDMap[sid].access
-            //console.log(access)
-        checkinDuration(access, res)
-    } else {
-        //console.log(jukeboxToSessionMap[jid])
-        res.send({})
+    if (jukeboxToQueueMap[jid] && jukeboxToQueueMap[jid].length > 0) {
+        console.log("Next song to play is")
+        var songuri = jukeboxToQueueMap[jid][0].uri
+        var songlength = jukeboxToQueueMap[jid][0].duration
+        console.log(jukeboxToQueueMap[jid][0])
+        for (var i = 0; i < jukeboxToSessionMap[jid].length; i++) {
+            var sid = jukeboxToSessionMap[jid][i]
+            playSongOnSid(sid, [songuri])
+        }
+        sendBackSongLength(jid, songlength)
     }
+    res.send({})
+})
 
+app.get('/refresh_token', function(req, res) {
+    console.log('/refresh_token')
+    console.log(req.query)
+        // requesting access token from refresh token
+    var refresh_token = req.query.refresh_token;
+    var authOptions = {
+        url: 'https://accounts.spotify.com/api/token',
+        headers: { 'Authorization': 'Basic ' + (new Buffer(client_id + ':' + client_secret).toString('base64')) },
+        form: {
+            grant_type: 'refresh_token',
+            refresh_token: refresh_token
+        },
+        json: true
+    };
+
+    request.post(authOptions, function(error, response, body) {
+        if (!error && response.statusCode === 200) {
+            var access_token = body.access_token;
+            res.send({
+                'access_token': access_token
+            });
+        }
+    });
+});
+
+app.post('/registerjukebox', function(req, res) {
+    console.log('/registerjukebox')
+    console.log("Query parameters")
+    console.log(req.query)
+    var jid = req.body.jid
+    pool
+        .connect()
+        .then(client => {
+            return client
+                .query('SELECT id from jukebox where id = $1', [jid])
+                .then(res => {
+                    client.release()
+                        //console.log(res.rows)
+                        //console.log("success")
+                    if (res.rows.length == 0) {
+                        //console.log("No such jukebox exists")
+                        pool.connect()
+                            .then(client2 => {
+                                return client2
+                                    .query('INSERT INTO jukebox (id) VALUES ($1)', [jid])
+                                    .then(res => {
+                                        client2.release()
+                                            //console.log(res.rows)
+                                    })
+                                    .catch(err => {
+                                        client2.release()
+                                        console.log(err.stack)
+                                    })
+                            })
+                    } else {
+                        //console.log("Jukebox for the given id exists")
+                    }
+                })
+                .catch(err => {
+                    client.release()
+                        //console.log(err.stack)
+                        //console.log("failure")
+                })
+        })
+
+    res.send(req.body)
+})
+
+app.get('/searchforsong', function(req, res) {
+    console.log('/searchforsong')
+    console.log('req.query')
+    console.log(req.query)
+    if (req.query.sid && req.query.query) {
+        var access = sessionToIDMap[req.query.sid].access
+        searchForSongOnAccess(access, req.query.query, res)
+    }
+})
+
+app.get('/skipsong', function(req, res) {
+    console.log('/skipsong')
+    console.log(req.query)
+    if (req.query.jid) {
+        var jid = req.query.jid
+        if (jukeboxToQueueMap[jid] && jukeboxToQueueMap[jid].length > 0) {
+            jukeboxToQueueMap[jid].splice(0, 1)
+            console.log("Updated queue")
+            console.log(jukeboxToQueueMap[jid])
+            updateQueue(jid)
+            if (jukeboxToQueueMap[jid].length > 0) {
+                console.log("Next song is")
+                var songuri = jukeboxToQueueMap[jid][0].uri
+                var songlength = jukeboxToQueueMap[jid][0].duration
+                console.log(songuri)
+                for (var i = 0; i < jukeboxToSessionMap[jid].length; i++) {
+                    var sid = jukeboxToSessionMap[jid][i]
+                    playSongOnSid(sid, [songuri])
+                }
+                sendBackSongLength(jid, songlength)
+            }
+        } else if (jukeboxToQueueMap[jid]) {
+            updateQueue(jid)
+        }
+    }
+    res.send({})
 })
 
 function checkinDuration(access, res) {
@@ -354,52 +490,6 @@ function checkinDuration(access, res) {
             res.send(response.body)
         }
     });
-}
-
-app.get('/playqueue', function(req, res) {
-    console.log("/playqueue")
-    console.log(req.query)
-    var jid = req.query.jid
-    if (jukeboxToQueueMap[jid] && jukeboxToQueueMap[jid].length > 0) {
-        console.log("Next song to play is")
-        var songuri = jukeboxToQueueMap[jid][0].uri
-        var songlength = jukeboxToQueueMap[jid][0].duration
-        console.log(jukeboxToQueueMap[jid][0])
-        for (var i = 0; i < jukeboxToSessionMap[jid].length; i++) {
-            var sid = jukeboxToSessionMap[jid][i]
-            playSongOnSid(sid, [songuri])
-        }
-        sendBackSongLength(jid, songlength)
-    }
-    res.send({})
-})
-
-function sendBackSongLength(jid, length) {
-    console.log("sendBackSongLength")
-    console.log("Jid: " + jid)
-    console.log("Length: " + length)
-    if (jukeboxToSessionMap[jid]) {
-        console.log("jukeboxToSessionMap for jid: " + jid)
-        console.log(jukeboxToSessionMap[jid])
-        for (var i = 0; i < jukeboxToSessionMap[jid].length; i++) {
-            var sid = jukeboxToSessionMap[jid][i]
-            if (sessionToConnectMap[sid]) {
-                console.log("Connection found")
-                var conn = sessionToConnectMap[sid]
-                var message = {
-                    "message_type": "length_response",
-                    "song_length": length
-                }
-                console.log(message)
-                conn.send(JSON.stringify(message))
-            } else {
-                console.log("Sid to connection map not found for sid: " + sid)
-            }
-        }
-    } else {
-        console.log("Jukebox to session map not found for jid: " + jid)
-        console.log(jukeboxToSessionMap)
-    }
 }
 
 function playSongOnSid(sid, uris) {
@@ -439,142 +529,6 @@ function playSongOnSid(sid, uris) {
     });
 }
 
-app.get('/skipsong', function(req, res) {
-    console.log('/skipsong')
-    console.log(req.query)
-    if (req.query.jid) {
-        var jid = req.query.jid
-        if (jukeboxToQueueMap[jid] && jukeboxToQueueMap[jid].length > 0) {
-            jukeboxToQueueMap[jid].splice(0, 1)
-            console.log("Updated queue")
-            console.log(jukeboxToQueueMap[jid])
-            updateQueue(jid)
-            if (jukeboxToQueueMap[jid].length > 0) {
-                console.log("Next song is")
-                var songuri = jukeboxToQueueMap[jid][0].uri
-                var songlength = jukeboxToQueueMap[jid][0].duration
-                console.log(songuri)
-                for (var i = 0; i < jukeboxToSessionMap[jid].length; i++) {
-                    var sid = jukeboxToSessionMap[jid][i]
-                    playSongOnSid(sid, [songuri])
-                }
-                sendBackSongLength(jid, songlength)
-            }
-        } else if (jukeboxToQueueMap[jid]) {
-            updateQueue(jid)
-        }
-    }
-    res.send({})
-})
-
-app.get('/checksession', function(req, res) {
-    console.log("Checksession")
-    console.log("req.query")
-    console.log(req.query)
-    var loggedin = false
-    var injukebox = false
-    var isOwner = false
-    if (req.query.sid) {
-        var sid = req.query.sid
-        if (sessionToIDMap[sid]) {
-            console.log("sid")
-            console.log(sid)
-            console.log("sessionToIDMap[sid]")
-            console.log(sessionToIDMap[sid])
-            loggedin = true
-        }
-
-        if (jukeboxToSessionMap[req.query.jid]) {
-            for (var i = 0; i < jukeboxToSessionMap[req.query.jid].length; i++) {
-                if (jukeboxToSessionMap[req.query.jid][i] === req.query.sid) {
-                    console.log("jukeboxToSessionMap[req.query.jid][i]")
-                    console.log(jukeboxToSessionMap[req.query.jid][i])
-                    console.log("req.query.sid")
-                    console.log(req.query.sid)
-                    if (sessionToConnectMap[sid]) {
-                        console.log("sessionToConnectMap[sid]")
-                        console.log(sessionToConnectMap[sid])
-                        injukebox = true
-                    }
-                    break
-                }
-            }
-        }
-    }
-
-    var queue = []
-    if (req.query.jid) {
-        if (jukeboxToQueueMap[req.query.jid]) {
-            queue = jukeboxToQueueMap[req.query.jid]
-        }
-    }
-
-    var resBody = {
-        "loggedin": loggedin,
-        "injukebox": injukebox,
-        "queue": queue
-    }
-
-    console.log("resBody")
-    console.log(resBody)
-
-    res.send(resBody)
-})
-
-app.get('/searchforsong', function(req, res) {
-    console.log('/searchforsong')
-    console.log('req.query')
-    console.log(req.query)
-    if (req.query.sid && req.query.query) {
-        var access = sessionToIDMap[req.query.sid].access
-        searchForSongOnAccess(access, req.query.query, res)
-    }
-})
-
-app.get('/addtoqueue', function(req, res) {
-    console.log('/addtoqueue')
-    console.log('req.query.jid')
-    console.log(req.query.jid)
-    if (req.query.jid && req.query.uri && req.query.songname) {
-        var jid = req.query.jid
-        var uri = req.query.uri
-        var songname = req.query.songname
-        var duration = req.query.duration
-        if (!jukeboxToQueueMap[jid]) {
-            jukeboxToQueueMap[jid] = []
-        }
-        jukeboxToQueueMap[jid].push({ "uri": uri, "songname": songname, "duration": duration })
-        console.log("New queue")
-        console.log(jukeboxToQueueMap[jid])
-        updateQueue(jid)
-    }
-    res.send({})
-})
-
-function updateQueue(jid) {
-    console.log('updateQueue for jid: ' + jid)
-    if (jukeboxToSessionMap[jid]) {
-        for (var i = 0; i < jukeboxToSessionMap[jid].length; i++) {
-            var sid = jukeboxToSessionMap[jid][i]
-            console.log("Updating queue for sid :" + sid)
-            if (sessionToConnectMap[sid]) {
-                console.log("Connection found for sid :" + sid)
-                var conn = sessionToConnectMap[sid]
-                var message = {
-                    "message_type": "queue_response",
-                    "queue": jukeboxToQueueMap[jid]
-                }
-                console.log(message)
-                conn.send(JSON.stringify(message))
-            } else {
-                console.log("Connection not found for sid :" + sid)
-            }
-        }
-    } else {
-        console.log("Jukebox not found for jid: " + jid)
-    }
-}
-
 function searchForSongOnAccess(access, query, res) {
     console.log("searchForSongOnAccess")
     console.log("access: " + access)
@@ -607,30 +561,57 @@ function searchForSongOnAccess(access, query, res) {
     });
 }
 
-app.get('/refresh_token', function(req, res) {
-    console.log('/refresh_token')
-    console.log(req.query)
-        // requesting access token from refresh token
-    var refresh_token = req.query.refresh_token;
-    var authOptions = {
-        url: 'https://accounts.spotify.com/api/token',
-        headers: { 'Authorization': 'Basic ' + (new Buffer(client_id + ':' + client_secret).toString('base64')) },
-        form: {
-            grant_type: 'refresh_token',
-            refresh_token: refresh_token
-        },
-        json: true
-    };
-
-    request.post(authOptions, function(error, response, body) {
-        if (!error && response.statusCode === 200) {
-            var access_token = body.access_token;
-            res.send({
-                'access_token': access_token
-            });
+function sendBackSongLength(jid, length) {
+    console.log("sendBackSongLength")
+    console.log("Jid: " + jid)
+    console.log("Length: " + length)
+    if (jukeboxToSessionMap[jid]) {
+        console.log("jukeboxToSessionMap for jid: " + jid)
+        console.log(jukeboxToSessionMap[jid])
+        for (var i = 0; i < jukeboxToSessionMap[jid].length; i++) {
+            var sid = jukeboxToSessionMap[jid][i]
+            if (sessionToConnectMap[sid]) {
+                console.log("Connection found")
+                var conn = sessionToConnectMap[sid]
+                var message = {
+                    "message_type": "length_response",
+                    "song_length": length
+                }
+                console.log(message)
+                conn.send(JSON.stringify(message))
+            } else {
+                console.log("Sid to connection map not found for sid: " + sid)
+            }
         }
-    });
-});
+    } else {
+        console.log("Jukebox to session map not found for jid: " + jid)
+        console.log(jukeboxToSessionMap)
+    }
+}
+
+function updateQueue(jid) {
+    console.log('updateQueue for jid: ' + jid)
+    if (jukeboxToSessionMap[jid]) {
+        for (var i = 0; i < jukeboxToSessionMap[jid].length; i++) {
+            var sid = jukeboxToSessionMap[jid][i]
+            console.log("Updating queue for sid :" + sid)
+            if (sessionToConnectMap[sid]) {
+                console.log("Connection found for sid :" + sid)
+                var conn = sessionToConnectMap[sid]
+                var message = {
+                    "message_type": "queue_response",
+                    "queue": jukeboxToQueueMap[jid]
+                }
+                console.log(message)
+                conn.send(JSON.stringify(message))
+            } else {
+                console.log("Connection not found for sid :" + sid)
+            }
+        }
+    } else {
+        console.log("Jukebox not found for jid: " + jid)
+    }
+}
 
 var server = http.createServer(app)
 server.listen(port, () => {

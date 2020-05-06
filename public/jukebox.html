@@ -42,10 +42,12 @@
         var regexSID = /[\S]*sid=([\dA-z]*)/
 
         var jidGlobal = window.location.search.match(regexJID)[1]
+        console.log("jidGlobal is: " + jidGlobal)
         var sidGlobalArr = window.location.search.match(regexSID)
         var sidFromUrl
         if (sidGlobalArr) {
             sidFromUrl = sidGlobalArr[1]
+            console.log("sidFromUrl is: " + sidFromUrl)
             setCookie("sid", sidFromUrl, 30)
         }
         document.getElementById("jid").innerHTML = jidGlobal
@@ -193,6 +195,7 @@
                         } else {
                             clearInterval(intervalVar)
                             document.getElementById("remaining_time").innerHTML = ""
+                            skipSong()
                         }
                         break
                     case 'length_response':

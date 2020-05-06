@@ -339,6 +339,7 @@ app.get('/checkinduration', function(req, res) {
 
 function checkinDuration(access, res) {
     console.log("Checking in duration")
+    console.log("Access is: " + access)
     var options = {
         url: 'https://api.spotify.com/v1/me/player/currently-playing',
         headers: { 'Authorization': 'Bearer ' + access }
@@ -374,8 +375,6 @@ app.get('/playqueue', function(req, res) {
 })
 
 function sendBackSongLength(jid, length) {
-    //console.log(jid)
-    //console.log(length)
     console.log("sendBackSongLength")
     console.log("Jid: " + jid)
     console.log("Length: " + length)
@@ -404,6 +403,10 @@ function sendBackSongLength(jid, length) {
 }
 
 function playSongOnSid(sid, uris) {
+    console.log("playSongOnSid")
+    console.log("sid: " + sid)
+    console.log("uris")
+    console.log(uris)
     var access = sessionToIDMap[sid].access
 
     var options = {
@@ -453,8 +456,6 @@ app.get('/skipsong', function(req, res) {
                 console.log(songuri)
                 for (var i = 0; i < jukeboxToSessionMap[jid].length; i++) {
                     var sid = jukeboxToSessionMap[jid][i]
-                        //var access_token = sessionToIDMap[sid].access
-                        //playSongOnAccess(access_token, [songuri])
                     playSongOnSid(sid, [songuri])
                 }
                 sendBackSongLength(jid, songlength)
@@ -468,6 +469,7 @@ app.get('/skipsong', function(req, res) {
 
 app.get('/checksession', function(req, res) {
     console.log("Checksession")
+    console.log("req.query")
     console.log(req.query)
     var loggedin = false
     var injukebox = false
@@ -475,7 +477,9 @@ app.get('/checksession', function(req, res) {
     if (req.query.sid) {
         var sid = req.query.sid
         if (sessionToIDMap[sid]) {
+            console.log("sid")
             console.log(sid)
+            console.log("sessionToIDMap[sid]")
             console.log(sessionToIDMap[sid])
             loggedin = true
         }
@@ -483,7 +487,13 @@ app.get('/checksession', function(req, res) {
         if (jukeboxToSessionMap[req.query.jid]) {
             for (var i = 0; i < jukeboxToSessionMap[req.query.jid].length; i++) {
                 if (jukeboxToSessionMap[req.query.jid][i] === req.query.sid) {
+                    console.log("jukeboxToSessionMap[req.query.jid][i]")
+                    console.log(jukeboxToSessionMap[req.query.jid][i])
+                    console.log("req.query.sid")
+                    console.log(req.query.sid)
                     if (sessionToConnectMap[sid]) {
+                        console.log("sessionToConnectMap[sid]")
+                        console.log(sessionToConnectMap[sid])
                         injukebox = true
                     }
                     break
@@ -499,26 +509,34 @@ app.get('/checksession', function(req, res) {
         }
     }
 
-    res.send({
+    var resBody = {
         "loggedin": loggedin,
         "injukebox": injukebox,
         "queue": queue
-    })
+    }
+
+    console.log("resBody")
+    console.log(resBody)
+
+    res.send(resBody)
 })
 
 app.get('/searchforsong', function(req, res) {
     console.log('/searchforsong')
+    console.log('req.query')
     console.log(req.query)
     if (req.query.sid && req.query.query) {
         var access = sessionToIDMap[req.query.sid].access
-        var response = searchForSongOnAccess(access, req.query.query, res)
+        searchForSongOnAccess(access, req.query.query, res)
     }
 })
 
 app.get('/addtoqueue', function(req, res) {
+    console.log('/addtoqueue')
+    console.log('req.query.jid')
+    console.log(req.query.jid)
     if (req.query.jid && req.query.uri && req.query.songname) {
         var jid = req.query.jid
-        console.log(req.query)
         var uri = req.query.uri
         var songname = req.query.songname
         var duration = req.query.duration
@@ -526,8 +544,9 @@ app.get('/addtoqueue', function(req, res) {
             jukeboxToQueueMap[jid] = []
         }
         jukeboxToQueueMap[jid].push({ "uri": uri, "songname": songname, "duration": duration })
+        console.log("New queue")
+        console.log(jukeboxToQueueMap[jid])
         updateQueue(jid)
-        console.log(jukeboxToQueueMap)
     }
     res.send({})
 })

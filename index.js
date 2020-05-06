@@ -79,13 +79,13 @@ app.use(express.static(__dirname + '/public'))
     .use(cookieParser())
     .use(bodyParser.json())
 
-app.get('/createjukebox', function(req, res) {
+/*app.get('/createjukebox', function(req, res) {
     console.log("/createjukebox")
     var options = {
         root: path.join(__dirname, "public")
     }
     res.sendFile('createjukebox.html', options)
-})
+})*/
 
 app.get('/jukebox', function(req, res) {
     console.log('/jukebox')

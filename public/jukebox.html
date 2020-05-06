@@ -286,7 +286,8 @@
             var diff = Math.round((currTime - lastCalled) / 1000)
             time = time - diff
             lastCalled = currTime
-            rt.innerHTML = time
+            var displayTime = 0
+            rt.innerHTML = Math.max(time, displayTime)
             if (time <= 0) {
                 clearInterval(intervalVar)
                 if (isOwner) {

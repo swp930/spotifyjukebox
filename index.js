@@ -6,7 +6,7 @@ if (port == null || port == "") {
 /**
  * This is an example of a basic node.js script that performs
  * the Authorization Code oAuth2 flow to authenticate against
- * the Spotify Accounts.
+ * the Spotify Accounts
  *
  * For more information, read
  * https://developer.spotify.com/web-api/authorization-guide/#authorization_code_flow
@@ -587,14 +587,22 @@ function searchForSongOnAccess(access, query, res) {
 
     request.get(options, function(error, response, body) {
         console.log("searchForSongOnAccess")
-        if (response.body.error) {
-            console.log("Error")
-            console.log(response.body.error)
-            res.send({})
+        if (response) {
+            if (response.body) {
+                if (response.body.error) {
+                    console.log("Error")
+                    console.log(response.body.error)
+                    res.send({})
+                } else {
+                    console.log("No error")
+                    console.log(JSON.parse(response.body).tracks.items)
+                    res.send(JSON.parse(response.body).tracks.items)
+                }
+            }
         } else {
-            console.log("No error")
-            console.log(JSON.parse(response.body).tracks.items)
-            res.send(JSON.parse(response.body).tracks.items)
+            console.log("No content")
+            if (error)
+                console.log(error)
         }
     });
 }

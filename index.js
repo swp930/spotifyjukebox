@@ -80,6 +80,7 @@ app.use(express.static(__dirname + '/public'))
     .use(bodyParser.json())
 
 app.get('/createjukebox', function(req, res) {
+    console.log("/createjukebox")
     var options = {
         root: path.join(__dirname, "public")
     }
@@ -87,6 +88,8 @@ app.get('/createjukebox', function(req, res) {
 })
 
 app.get('/jukebox', function(req, res) {
+    console.log('/jukebox')
+    console.log(req.query)
     var options = {
         root: path.join(__dirname, "public")
     }
@@ -94,8 +97,8 @@ app.get('/jukebox', function(req, res) {
 })
 
 app.post('/registerjukebox', function(req, res) {
-    //console.log(req.body)
-    //console.log(req.body.jid)
+    console.log('/registerjukebox')
+    console.log(req.query)
     var jid = req.body.jid
     pool
         .connect()
@@ -131,6 +134,7 @@ app.post('/registerjukebox', function(req, res) {
                         //console.log("failure")
                 })
         })
+
     res.send(req.body)
 })
 
@@ -138,6 +142,9 @@ app.get('/login', function(req, res) {
 
     var state = JSON.stringify(req.query);
     res.cookie(stateKey, state);
+    console.log('/login')
+    console.log('req.query')
+    console.log(req.query)
 
     // your application requests authorization
     var scope = 'user-read-private user-read-email user-modify-playback-state user-read-currently-playing';
@@ -153,13 +160,13 @@ app.get('/login', function(req, res) {
     );*/
 
     var url = 'https://accounts.spotify.com/authorize?' + querystring.stringify({
-            response_type: 'code',
-            client_id: client_id,
-            scope: scope,
-            redirect_uri: redirect_uri,
-            state: state,
-        })
-        //console.log(url)
+        response_type: 'code',
+        client_id: client_id,
+        scope: scope,
+        redirect_uri: redirect_uri,
+        state: state,
+    })
+    console.log("url: + " + url)
 
     res.send({ "url": url })
 });
@@ -168,14 +175,14 @@ app.get('/callback', function(req, res) {
 
     // your application requests refresh and access tokens
     // after checking the state parameter
+    // /callback
 
-    //console.log("Query vals")
-    //console.log(req.query)
+    console.log('/callback')
+    console.log('req.query')
+    console.log(req.query)
     var code = req.query.code || null;
     var state = req.query.state || null;
     var stateVal = JSON.parse(state)
-        //console.log("State is: ")
-        //console.log(stateVal)
     var jid = stateVal.jid
     console.log("jid")
     console.log(jid)

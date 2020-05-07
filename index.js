@@ -439,8 +439,8 @@ app.get('/searchforsong', function(req, res) {
     console.log('req.query')
     console.log(req.query)
     if (req.query.sid && req.query.query) {
-        var access = sessionToIDMap[req.query.sid].access
-        searchForSongOnAccess(access, req.query.query, res)
+        //var access = sessionToIDMap[req.query.sid].access
+        searchForSongOnSid(req.query.sid, req.query.query, res)
     }
 })
 
@@ -531,10 +531,11 @@ function playSongOnSid(sid, uris) {
     });
 }
 
-function searchForSongOnAccess(access, query, res) {
-    console.log("searchForSongOnAccess")
-    console.log("access: " + access)
+function searchForSongOnSid(sid, query, res) {
+    console.log("searchForSongOnSid")
+    console.log("sid: " + sid)
     console.log("query: " + query)
+    var access = sessionToIDMap[sid].access
 
     var options = {
         url: 'https://api.spotify.com/v1/search?q=' + query + '&type=track&limit=8',
@@ -542,7 +543,7 @@ function searchForSongOnAccess(access, query, res) {
     };
 
     request.get(options, function(error, response, body) {
-        console.log("searchForSongOnAccess")
+        console.log("searchForSongOnSid")
         if (response) {
             if (response.body) {
                 if (response.body.error) {

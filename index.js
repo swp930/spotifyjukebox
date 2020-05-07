@@ -549,7 +549,8 @@ function searchForSongOnAccess(access, query, res) {
                     res.send({})
                 } else {
                     console.log("No error")
-                    console.log(JSON.parse(response.body).tracks.items)
+                    console.log("Number of songs found:")
+                    console.log(JSON.parse(response.body).tracks.items.length)
                     res.send(JSON.parse(response.body).tracks.items)
                 }
             }

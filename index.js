@@ -1,20 +1,8 @@
-var port = process.env.PORT
-if (port == null || port == "") {
-    port = 8888
-}
-
-/**
- * This is an example of a basic node.js script that performs
- * the Authorization Code oAuth2 flow to authenticate against
- * the Spotify Accounts 
- *
- * For more information, read
- * https://developer.spotify.com/web-api/authorization-guide/#authorization_code_flow
- */
-
 if (process.env.NODE_ENV !== 'production') {
     require('dotenv').config({ path: '.env' });
 }
+
+var port = process.env.PORT
 
 var express = require('express'); // Express web server framework
 var request = require('request'); // "Request" library  

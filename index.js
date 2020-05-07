@@ -12,6 +12,10 @@ if (port == null || port == "") {
  * https://developer.spotify.com/web-api/authorization-guide/#authorization_code_flow
  */
 
+if (process.env.NODE_ENV !== 'production') {
+    require('dotenv').config({ path: '.env' });
+}
+
 var express = require('express'); // Express web server framework
 var request = require('request'); // "Request" library  
 var path = require('path')
@@ -32,23 +36,11 @@ var jukeboxToSidOwnerMap = {}
 var client_id = '5cdc53405b224d4fa1d1b8eef875c3d8'; // Your client id
 var client_secret = 'fa990d3dd5cc491f94f38a8e57d19ebe'; // Your secret
 var redirect_uri = process.env.CALLBACK_URL // Your redirect uri
-if (redirect_uri == null || redirect_uri == "") {
-    redirect_uri = 'http://localhost:8888/callback';
-}
 
 var access_token = "BQCCnFjKTW7icLQTnyMKEA5hlJ_R6YZFv8yTCUExTlreram1rqV9nCskrRlFo8sDqco09VyHk8nbCa9XMtArWHszlIQcWLIpiwt7OZ1zoJ_8Kg5bJz2T5NkPmauc9RBu6WNCJxxh4D1TVvHC3RIM2TanDhrPAJOIFcQ"
 var access_token_2 = "BQBZGuK4bx_dEgswsrZBvFrC4K_7cHmZuOojK7JWG4b60UpOkJKtbQ0M3RVTEtKju1lIGRiqI_J8VmhJh8CUCIhtkwebDNGNw8T9arYPvjpO5oO9crwDkDaYcLBWwnLyMcwL8aOU7vsaUm7We8J2PxZSr5O_sBbUAi_ovzIrXqRbg2BHV7kBV1Y"
 
-var host = "localhost"
-var port_val = "5432"
-var dbname = "spotapi"
-var user = "spot"
-var pwrd = "spotify123!"
-var local_url = "postgres://" + user + ":" + pwrd + "@" + host + ":" + port_val + "/" + dbname
 var db_url = process.env.DATABASE_URL
-if (db_url == null || db_url == "") {
-    db_url = local_url
-}
 
 const pool = new Pool({
     connectionString: db_url,

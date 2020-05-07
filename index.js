@@ -168,8 +168,7 @@ app.get('/checkinduration', function(req, res) {
     var jid = req.query.jid
     if (jid && jukeboxToSessionMap[jid] && jukeboxToSessionMap[jid].length > 0) {
         var sid = jukeboxToSessionMap[jid][0]
-        var access = sessionToIDMap[sid].access
-        checkinDuration(access, res)
+        checkinDuration(sid, res)
     } else {
         res.send({})
     }
@@ -473,9 +472,10 @@ app.get('/skipsong', function(req, res) {
     res.send({})
 })
 
-function checkinDuration(access, res) {
+function checkinDuration(sid, res) {
     console.log("Checking in duration")
-    console.log("Access is: " + access)
+    console.log("Sid is: " + sid)
+    var access = sessionToIDMap[sid].access
     var options = {
         url: 'https://api.spotify.com/v1/me/player/currently-playing',
         headers: { 'Authorization': 'Bearer ' + access }
@@ -486,7 +486,9 @@ function checkinDuration(access, res) {
 
         if (response.body) {
             console.log("Checkin duration item ")
-            console.log(response.body.item)
+            var parsed = JSON.parse(response.body)
+            console.log("progress_ms is: " + parsed.progress_ms)
+            console.log("duration_ms is: " + parsed.item.duration_ms)
             res.send(response.body)
         }
     });

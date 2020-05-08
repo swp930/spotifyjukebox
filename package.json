@@ -21,6 +21,7 @@
         "pg": "^8.0.3",
         "querystring": "^0.2.0",
         "request": "^2.88.2",
+        "selenium-webdriver": "^4.0.0-alpha.7",
         "websocket": "^1.0.31"
     }
 }

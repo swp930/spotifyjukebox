@@ -21,8 +21,10 @@ var jukeboxToSessionMap = {}
 var jukeboxToQueueMap = {}
 var jukeboxToSidOwnerMap = {}
 
-var client_id = '5cdc53405b224d4fa1d1b8eef875c3d8'; // Your client id
-var client_secret = 'fa990d3dd5cc491f94f38a8e57d19ebe'; // Your secret
+//var client_id = '5cdc53405b224d4fa1d1b8eef875c3d8'; // Your client id
+//var client_secret = 'fa990d3dd5cc491f94f38a8e57d19ebe'; // Your secret
+var client_id = process.env.CLIENT_ID; // Your client id
+var client_secret = process.env.CLIENT_SECRET; // Your secret
 var redirect_uri = process.env.CALLBACK_URL // Your redirect uri
 
 var access_token = "BQCCnFjKTW7icLQTnyMKEA5hlJ_R6YZFv8yTCUExTlreram1rqV9nCskrRlFo8sDqco09VyHk8nbCa9XMtArWHszlIQcWLIpiwt7OZ1zoJ_8Kg5bJz2T5NkPmauc9RBu6WNCJxxh4D1TVvHC3RIM2TanDhrPAJOIFcQ"
@@ -206,6 +208,13 @@ app.get('/checksession', function(req, res) {
     console.log(resBody)
 
     res.send(resBody)
+})
+
+app.get('/darkjukebox', function(req, res) {
+    var options = {
+        root: path.join(__dirname, "public")
+    }
+    res.sendFile('darkjukebox.html', options)
 })
 
 app.get('/jukebox', function(req, res) {
@@ -576,6 +585,8 @@ function sendBackSongLength(jid, length) {
 function updateQueue(jid) {
     console.log('updateQueue for jid: ' + jid)
     if (jukeboxToSessionMap[jid]) {
+        console.log("sids in jid")
+        console.log(jukeboxToSessionMap[jid])
         for (var i = 0; i < jukeboxToSessionMap[jid].length; i++) {
             var sid = jukeboxToSessionMap[jid][i]
             console.log("Updating queue for sid :" + sid)
@@ -706,8 +717,8 @@ wsServer.on('request', function(request) {
                         delete sessionToConnectMap[data.sid]
                         delete sessionToIDMap[data.sid]
                         console.log("Deleting sessionToConnectMap and sessionToIDMap: " + data.sid)
-                        console.log(sessionToIDMap)
-                        console.log(sessionToConnectMap)
+                            //console.log(sessionToIDMap)
+                            //console.log(sessionToConnectMap)
                     }
                 }
                 break

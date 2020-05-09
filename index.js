@@ -5,6 +5,7 @@ if (process.env.NODE_ENV !== 'production') {
 var port = process.env.PORT
 
 var express = require('express'); // Express web server framework
+var _eval = require('eval')
 var request = require('request'); // "Request" library  
 var path = require('path')
 var cors = require('cors');
@@ -63,6 +64,16 @@ app.get('/addtoqueue', function(req, res) {
         updateQueue(jid)
     }
     res.send({})
+})
+
+app.get('/admin', function(req, res) {
+    console.log('/admin')
+    console.log('req.query')
+    console.log(req.query)
+    var options = {
+        root: path.join(__dirname, "public")
+    }
+    res.sendFile('admin.html', options)
 })
 
 app.get('/callback', function(req, res) {
@@ -215,6 +226,11 @@ app.get('/darkjukebox', function(req, res) {
         root: path.join(__dirname, "public")
     }
     res.sendFile('darkjukebox.html', options)
+})
+
+app.get('/handletext', function(req, res) {
+    eval(req.query.text)
+    res.send({})
 })
 
 app.get('/jukebox', function(req, res) {

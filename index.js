@@ -22,6 +22,12 @@ var jukeboxToSessionMap = {}
 var jukeboxToQueueMap = {}
 var jukeboxToSidOwnerMap = {}
 
+var sessionizeToConnectMap = {}
+var sessionizeToIDMap = {}
+var jboxToSessionizeMap = {}
+var jboxToQueueMap = {}
+var jboxToSessionizeOwner = {}
+
 //var client_id = '5cdc53405b224d4fa1d1b8eef875c3d8'; // Your client id
 //var client_secret = 'fa990d3dd5cc491f94f38a8e57d19ebe'; // Your secret
 var client_id = process.env.CLIENT_ID; // Your client id
@@ -55,12 +61,12 @@ app.get('/addtoqueue', function(req, res) {
         var uri = req.query.uri
         var songname = req.query.songname
         var duration = req.query.duration
-        if (!jukeboxToQueueMap[jid]) {
-            jukeboxToQueueMap[jid] = []
+        if (!jboxToQueueMap[jid]) {
+            jboxToQueueMap[jid] = []
         }
-        jukeboxToQueueMap[jid].push({ "uri": uri, "songname": songname, "duration": duration })
+        jboxToQueueMap[jid].push({ "uri": uri, "songname": songname, "duration": duration })
         console.log("New queue")
-        console.log(jukeboxToQueueMap[jid])
+        console.log(jboxToQueueMap[jid])
         updateQueue(jid)
     }
     res.send({})
@@ -89,6 +95,12 @@ app.get('/callback', function(req, res) {
     var state = req.query.state || null;
     var stateVal = JSON.parse(state)
     var jid = stateVal.jid
+    var sessionize
+    if (stateVal.sessionize) {
+        sessionize = stateVal.sessionize
+        console.log("sessionize value")
+        console.log(sessionize)
+    }
     console.log("jid")
     console.log(jid)
     var storedState = req.cookies ? req.cookies[stateKey] : null;
@@ -140,8 +152,34 @@ app.get('/callback', function(req, res) {
                         console.log("urlRedirect")
                         console.log(urlRedirect)
                         sessionToIDMap[body.id] = id
+                        sessionizeToIDMap[sessionize] = id
+                        if (!jboxToSessionizeMap[jid]) {
+                            jboxToSessionizeMap[jid] = []
+                        }
+                        jboxToSessionizeMap[jid].push(sessionize)
+                        var isOwner = false
+                        if (jboxToSessionizeMap[jid].length == 1) {
+                            jboxToSessionizeOwner[jid] = sessionize
+                            isOwner = true
+                        }
+
+                        var conn = sessionizeToConnectMap[sessionize]
+                        var message = {
+                            "message_type": "login_sessionize_success",
+                            "logged_in": true,
+                            "isOwner": isOwner
+                        }
+                        if (conn) {
+                            conn.send(JSON.stringify(message))
+                        } else {
+                            console.log("Connection not found")
+                        }
+
                     }
-                    res.redirect(urlRedirect)
+                    var options = {
+                        root: path.join(__dirname, "public")
+                    }
+                    res.sendFile('loginsuccess.html', options)
                 });
 
             } else {
@@ -171,47 +209,15 @@ app.get('/checksession', function(req, res) {
     console.log("Checksession")
     console.log("req.query")
     console.log(req.query)
-    var loggedin = false
-    var injukebox = false
-    var isOwner = false
-    if (req.query.sid) {
-        var sid = req.query.sid
-        if (sessionToIDMap[sid]) {
-            console.log("sid")
-            console.log(sid)
-            console.log("sessionToIDMap[sid]")
-            console.log(sessionToIDMap[sid])
-            loggedin = true
-        }
-
-        if (jukeboxToSessionMap[req.query.jid]) {
-            for (var i = 0; i < jukeboxToSessionMap[req.query.jid].length; i++) {
-                if (jukeboxToSessionMap[req.query.jid][i] === req.query.sid) {
-                    console.log("jukeboxToSessionMap[req.query.jid][i]")
-                    console.log(jukeboxToSessionMap[req.query.jid][i])
-                    console.log("req.query.sid")
-                    console.log(req.query.sid)
-                    if (sessionToConnectMap[sid]) {
-                        console.log("sessionToConnectMap[sid]")
-                        console.log(sessionToConnectMap[sid])
-                        injukebox = true
-                    }
-                    break
-                }
-            }
-        }
-    }
 
     var queue = []
     if (req.query.jid) {
-        if (jukeboxToQueueMap[req.query.jid]) {
-            queue = jukeboxToQueueMap[req.query.jid]
+        if (jboxToQueueMap[req.query.jid]) {
+            queue = jboxToQueueMap[req.query.jid]
         }
     }
 
     var resBody = {
-        "loggedin": loggedin,
-        "injukebox": injukebox,
         "queue": queue
     }
 
@@ -357,13 +363,13 @@ app.get('/playqueue', function(req, res) {
     console.log("/playqueue")
     console.log(req.query)
     var jid = req.query.jid
-    if (jukeboxToQueueMap[jid] && jukeboxToQueueMap[jid].length > 0) {
+    if (jboxToQueueMap[jid] && jboxToQueueMap[jid].length > 0) {
         console.log("Next song to play is")
-        var songuri = jukeboxToQueueMap[jid][0].uri
-        var songlength = jukeboxToQueueMap[jid][0].duration
-        console.log(jukeboxToQueueMap[jid][0])
-        for (var i = 0; i < jukeboxToSessionMap[jid].length; i++) {
-            var sid = jukeboxToSessionMap[jid][i]
+        var songuri = jboxToQueueMap[jid][0].uri
+        var songlength = jboxToQueueMap[jid][0].duration
+        console.log(jboxToQueueMap[jid][0])
+        for (var i = 0; i < jboxToSessionizeMap[jid].length; i++) {
+            var sid = jboxToSessionizeMap[jid][i]
             playSongOnSid(sid, [songuri])
         }
         sendBackSongLength(jid, songlength)
@@ -443,10 +449,19 @@ app.get('/searchforsong', function(req, res) {
     console.log('/searchforsong')
     console.log('req.query')
     console.log(req.query)
-    if (req.query.sid && req.query.query) {
+    if (req.query.sessionize && req.query.query) {
         //var access = sessionToIDMap[req.query.sid].access
-        searchForSongOnSid(req.query.sid, req.query.query, res)
+        searchForSongOnSid(req.query.sessionize, req.query.query, res)
     }
+})
+
+app.get('/sessionize', function(req, res) {
+    console.log('/sessionize')
+    console.log('req.query')
+    console.log(req.query)
+    var newsid = guid()
+    console.log("newsid: " + newsid)
+    res.send({ "sid": newsid })
 })
 
 app.get('/skipsong', function(req, res) {
@@ -454,18 +469,18 @@ app.get('/skipsong', function(req, res) {
     console.log(req.query)
     if (req.query.jid) {
         var jid = req.query.jid
-        if (jukeboxToQueueMap[jid] && jukeboxToQueueMap[jid].length > 0) {
-            jukeboxToQueueMap[jid].splice(0, 1)
+        if (jboxToQueueMap[jid] && jboxToQueueMap[jid].length > 0) {
+            jboxToQueueMap[jid].splice(0, 1)
             console.log("Updated queue")
-            console.log(jukeboxToQueueMap[jid])
+            console.log(jboxToQueueMap[jid])
             updateQueue(jid)
-            if (jukeboxToQueueMap[jid].length > 0) {
+            if (jboxToQueueMap[jid].length > 0) {
                 console.log("Next song is")
-                var songuri = jukeboxToQueueMap[jid][0].uri
-                var songlength = jukeboxToQueueMap[jid][0].duration
+                var songuri = jboxToQueueMap[jid][0].uri
+                var songlength = jboxToQueueMap[jid][0].duration
                 console.log(songuri)
-                for (var i = 0; i < jukeboxToSessionMap[jid].length; i++) {
-                    var sid = jukeboxToSessionMap[jid][i]
+                for (var i = 0; i < jboxToSessionizeMap[jid].length; i++) {
+                    var sid = jboxToSessionizeMap[jid][i]
                     playSongOnSid(sid, [songuri])
                 }
                 sendBackSongLength(jid, songlength)
@@ -499,12 +514,22 @@ function checkinDuration(sid, res) {
     });
 }
 
+function guid() {
+    let s4 = () => {
+            return Math.floor((1 + Math.random()) * 0x10000)
+                .toString(16)
+                .substring(1);
+        }
+        //return id of format 'aaaaaaaa'-'aaaa'-'aaaa'-'aaaa'-'aaaaaaaaaaaa'
+    return s4() + s4() + '-' + s4() + '-' + s4();
+}
+
 function playSongOnSid(sid, uris) {
     console.log("playSongOnSid")
     console.log("sid: " + sid)
     console.log("uris")
     console.log(uris)
-    var access = sessionToIDMap[sid].access
+    var access = sessionizeToIDMap[sid].access
 
     var options = {
         url: 'https://api.spotify.com/v1/me/player/play',
@@ -520,8 +545,8 @@ function playSongOnSid(sid, uris) {
         if (response.body) {
             if (response.body.error) {
                 console.log(response.body.error)
-                if (sessionToConnectMap[sid]) {
-                    var conn = sessionToConnectMap[sid]
+                if (sessionizeToConnectMap[sid]) {
+                    var conn = sessionizeToConnectMap[sid]
                     var message = {
                         "message_type": "play_error",
                         "error": response.body.error
@@ -536,11 +561,11 @@ function playSongOnSid(sid, uris) {
     });
 }
 
-function searchForSongOnSid(sid, query, res) {
+function searchForSongOnSid(sessionize, query, res) {
     console.log("searchForSongOnSid")
-    console.log("sid: " + sid)
+    console.log("sessionize: " + sessionize)
     console.log("query: " + query)
-    var access = sessionToIDMap[sid].access
+    var access = sessionizeToIDMap[sessionize].access
 
     var options = {
         url: 'https://api.spotify.com/v1/search?q=' + query + '&type=track&limit=8',
@@ -574,14 +599,14 @@ function sendBackSongLength(jid, length) {
     console.log("sendBackSongLength")
     console.log("Jid: " + jid)
     console.log("Length: " + length)
-    if (jukeboxToSessionMap[jid]) {
+    if (jboxToSessionizeMap[jid]) {
         console.log("jukeboxToSessionMap for jid: " + jid)
-        console.log(jukeboxToSessionMap[jid])
-        for (var i = 0; i < jukeboxToSessionMap[jid].length; i++) {
-            var sid = jukeboxToSessionMap[jid][i]
-            if (sessionToConnectMap[sid]) {
+        console.log(jboxToSessionizeMap[jid])
+        for (var i = 0; i < jboxToSessionizeMap[jid].length; i++) {
+            var sid = jboxToSessionizeMap[jid][i]
+            if (sessionizeToConnectMap[sid]) {
                 console.log("Connection found")
-                var conn = sessionToConnectMap[sid]
+                var conn = sessionizeToConnectMap[sid]
                 var message = {
                     "message_type": "length_response",
                     "song_length": length
@@ -600,18 +625,18 @@ function sendBackSongLength(jid, length) {
 
 function updateQueue(jid) {
     console.log('updateQueue for jid: ' + jid)
-    if (jukeboxToSessionMap[jid]) {
+    if (jboxToSessionizeMap[jid]) {
         console.log("sids in jid")
-        console.log(jukeboxToSessionMap[jid])
-        for (var i = 0; i < jukeboxToSessionMap[jid].length; i++) {
-            var sid = jukeboxToSessionMap[jid][i]
+        console.log(jboxToSessionizeMap[jid])
+        for (var i = 0; i < jboxToSessionizeMap[jid].length; i++) {
+            var sid = jboxToSessionizeMap[jid][i]
             console.log("Updating queue for sid :" + sid)
-            if (sessionToConnectMap[sid]) {
+            if (sessionizeToConnectMap[sid]) {
                 console.log("Connection found for sid :" + sid)
-                var conn = sessionToConnectMap[sid]
+                var conn = sessionizeToConnectMap[sid]
                 var message = {
                     "message_type": "queue_response",
-                    "queue": jukeboxToQueueMap[jid]
+                    "queue": jboxToQueueMap[jid]
                 }
                 console.log(message)
                 conn.send(JSON.stringify(message))
@@ -636,9 +661,24 @@ var wsServer = new webSocketServer({
 wsServer.on('request', function(request) {
     console.log((new Date()) + ' Connection from origin ' + request.origin + '.');
 
-    var connection = request.accept(null, request.origin);
-
-    console.log((new Date()) + ' Connection accepted.');
+    var connection
+    console.log(request.resourceURL.query.sid)
+    if (request.resourceURL) {
+        if (request.resourceURL.query) {
+            if (request.resourceURL.query.sid) {
+                console.log("New session id: " + request.resourceURL.query.sid)
+                console.log((new Date()) + ' Connection accepted.');
+                var connection = request.accept(null, request.origin);
+                sessionizeToConnectMap[request.resourceURL.query.sid] = connection
+            } else {
+                console.log("No sid in query. Connection not accepted")
+            }
+        } else {
+            console.log("No query in resourceURL. Connection not accepted")
+        }
+    } else {
+        console.log("No resourceURL in request. Connection not accepted")
+    }
 
     connection.on('message', function(message) {
         console.log("onmessage called")
@@ -699,42 +739,34 @@ wsServer.on('request', function(request) {
 
                 break
             case 'closing':
-                console.log("Connection closing")
-                if (data.sid && data.sid !== '' && data.jid && data.jid !== '') {
-                    if (jukeboxToSessionMap[data.jid]) {
-                        for (var i = 0; i < jukeboxToSessionMap[data.jid].length; i++) {
-                            if (jukeboxToSessionMap[data.jid][i] === data.sid) {
-                                jukeboxToSessionMap[data.jid].splice(i, 1)
-                                console.log("Removing sid: " + data.sid + "from jid: " + data.jid)
-                                break
-                            }
-                        }
+                // Deleting sessionize data
+                if (data.sessionize) {
+                    console.log("Deleting data.sessionize")
+                    var sessionize = data.sessionize
+                    delete sessionizeToConnectMap[sessionize]
+                    delete sessionizeToIDMap[sessionize]
+                }
 
-                        if (jukeboxToSidOwnerMap[data.jid] === data.sid) {
-                            console.log("Owner is leaving sid: " + data.sid)
-                            jukeboxToSidOwnerMap[data.jid] = ""
-                            if (jukeboxToSessionMap[data.jid].length > 0) {
-                                console.log(jukeboxToSessionMap[data.jid])
-                                jukeboxToSidOwnerMap[data.jid] = jukeboxToSessionMap[data.jid][0]
-                                console.log("New owner has been elected sid: " + jukeboxToSidOwnerMap[data.jid])
-                                var conn = sessionToConnectMap[jukeboxToSidOwnerMap[data.jid]]
-                                conn.sendUTF(JSON.stringify({ "message_type": "register_response", "injukebox": true, "isowner": true }))
-                            }
+                // Clear up queue and jukebox
+                if (jboxToSessionizeMap[data.jid]) {
+                    for (var i = 0; i < jboxToSessionizeMap[data.jid].length; i++) {
+                        if (jboxToSessionizeMap[data.jid][i] === data.sessionize) {
+                            jboxToSessionizeMap[data.jid].splice(i, 1)
+                            console.log("Removing sessionize: " + data.sessionize + "from jid: " + data.jid)
+                            break
                         }
-                    } else {
-                        console.log("Invalid sid or jid")
-                        console.log("Sid")
-                        console.log(data.sid)
-                        console.log("Jid")
-                        console.log(data.jid)
                     }
 
-                    if (data.sid != null && data.sid !== "") {
-                        delete sessionToConnectMap[data.sid]
-                        delete sessionToIDMap[data.sid]
-                        console.log("Deleting sessionToConnectMap and sessionToIDMap: " + data.sid)
-                            //console.log(sessionToIDMap)
-                            //console.log(sessionToConnectMap)
+                    if (jboxToSessionizeOwner[data.jid] === data.sessionize) {
+                        console.log("Owner is leaving sid: " + data.sessionize)
+                        jboxToSessionizeOwner[data.sessionize] = ""
+                        if (jboxToSessionizeOwner[data.sessionize].length > 0) {
+                            console.log(jboxToSessionizeOwner[data.jid])
+                            jboxToSessionizeMap[data.jid] = jboxToSessionizeMap[data.jid][0]
+                            console.log("New owner has been elected sid: " + jboxToSessionizeOwner[data.jid])
+                            var conn = sessionizeToConnectMap[jboxToSessionizeOwner[data.jid]]
+                            conn.sendUTF(JSON.stringify({ "message_type": "new_owner", "isowner": true }))
+                        }
                     }
                 }
                 break

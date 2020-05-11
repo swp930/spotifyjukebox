@@ -1,40 +1,46 @@
-//var regex_temp = /\?jid=(\S*)/
-//var arr = window.location.search.match(regex_temp)
 var song_results = []
 var intervalVar
 var lastCalled
 
-var regexJID = /[\S]*\?jid=([\dA-z]*[-][\dA-z]*[-][\dA-z]*)/
-var regexSID = /[\S]*sid=([\dA-z]*)/
-
-var jidGlobal = window.location.search.match(regexJID)[1]
-console.log("jidGlobal is: " + jidGlobal)
-var sidGlobalArr = window.location.search.match(regexSID)
-var sidFromUrl
-if (sidGlobalArr) {
-    sidFromUrl = sidGlobalArr[1]
-    console.log("sidFromUrl is: " + sidFromUrl)
-    setCookie("sid", sidFromUrl, 30)
-}
-document.getElementById("jid").innerHTML = jidGlobal
+var sidFromSessionize = ""
+var isLoggedIn = false
 var isOwner = false
 
-var xhr = new XMLHttpRequest();
-xhr.open("POST", "/registerjukebox", true);
-xhr.setRequestHeader("Content-Type", "application/json")
-xhr.onreadystatechange = function() { // Call a function when the state changes.
-    if (this.readyState === XMLHttpRequest.DONE && this.status === 200) {
-        console.log("Played ")
-    }
-}
-xhr.send(JSON.stringify({
-    "jid": jidGlobal
-}));
+var HOST = location.origin.replace(/^http/, 'ws')
+var connection
 
+var regexJID = /[\S]*\?jid=([\dA-z]*[-][\dA-z]*[-][\dA-z]*)/
+var jidGlobal = window.location.search.match(regexJID)[1]
+console.log("jidGlobal is: " + jidGlobal)
 
 checkinWithServer()
 checkinDuration()
 var rt = document.getElementById("remaining_time")
+
+window.onload = function() {
+    console.log("window.onload")
+    var xhr = new XMLHttpRequest();
+    var url = "/sessionize"
+    xhr.open("GET", url, true);
+    xhr.onreadystatechange = function() { // Call a function when the state changes.
+        if (this.readyState === XMLHttpRequest.DONE && this.status === 200) {
+            var response = JSON.parse(xhr.response)
+            console.log(response)
+            if (response.sid) {
+                sidFromSessionize = response.sid
+                console.log("New session id is: " + sidFromSessionize)
+                var urlAddition = "?sid=" + sidFromSessionize
+                HOST += urlAddition
+                connection = new WebSocket(HOST);
+                connection.onopen = handlOnOpen
+                connection.onmessage = handleOnMessage
+            }
+        }
+    }
+    xhr.send();
+    this.checkLoginStatus()
+}
+
 window.addEventListener("beforeunload", (event) => handleFunction(event));
 
 function addUriToQueue(songid) {
@@ -93,23 +99,31 @@ function checkinWithServer() {
     xhr.onreadystatechange = function() { // Call a function when the state changes.
         if (this.readyState === XMLHttpRequest.DONE && this.status === 200) {
             var response = JSON.parse(xhr.response)
-            console.log("URL check session")
             console.log(response)
-            document.getElementById("loggedin").innerHTML = response.loggedin
-            document.getElementById("injukebox").innerHTML = response.injukebox
-            console.log("Current queue")
-            console.log(response.queue)
+            console.log("URL check session")
             constructQueueView(response.queue)
-            if (!response.loggedin && getCookie("sid").length > 0) {
-                console.log("Shouldnt have cookie")
-                console.log("Should refresh")
-                window.location.href = "/jukebox?jid=" + jidGlobal
-                    //(getCookie("sid") !== '' || getCookie("sid") != null)
-            }
-            //window.location.href = "/jukebox?jid=" + jidGlobal
         }
     }
     xhr.send();
+}
+
+function checkLoginStatus() {
+    var p = document.getElementById("status")
+    if (isLoggedIn) {
+        var login = document.getElementById("login")
+        var logout = document.getElementById("logout")
+        login.style.display = "none"
+        logout.style.display = "inline"
+
+        p.innerHTML = "Connected"
+    } else {
+        var login = document.getElementById("login")
+        var logout = document.getElementById("logout")
+        logout.style.display = "none"
+        login.style.display = "inline"
+
+        p.innerHTML = "Disconnected"
+    }
 }
 
 function connectToJukeBox() {
@@ -208,33 +222,35 @@ function handleFunction(event) {
     var connectObj = {
         "message_type": "closing",
         "jid": jidGlobal,
-        "sid": getCookie("sid")
+        "sid": getCookie("sid"),
+        "sessionize": sidFromSessionize
     }
     setCookie("sid", "", -2)
     connection.send(JSON.stringify(connectObj))
 }
 
 function login() {
-    console.log("Logging in")
-    var sid = getCookie("sid")
-    console.log(sid)
-    if (sid == "") {
-        //sid = guid()
-        //setCookie("sid", sid, 30)
-        var xhr = new XMLHttpRequest();
-        var url = "/login?jid=" + jidGlobal
-        xhr.open("GET", url, true);
-        xhr.onreadystatechange = function() { // Call a function when the state changes.
-            if (this.readyState === XMLHttpRequest.DONE && this.status === 200) {
-                var response = JSON.parse(xhr.response)
-                console.log(response)
-                var redirectURL = response.url
-                window.location.href = redirectURL
-            }
+    console.log("Login second")
+    var xhr = new XMLHttpRequest();
+    var url = "/login?jid=" + jidGlobal + "&sessionize=" + sidFromSessionize
+    xhr.open("GET", url, true);
+    xhr.onreadystatechange = function() { // Call a function when the state changes.
+        if (this.readyState === XMLHttpRequest.DONE && this.status === 200) {
+            var response = JSON.parse(xhr.response)
+            console.log(response)
+            var redirectURL = response.url
+            console.log(redirectURL)
+            const win = window.open(redirectURL, 'Spotify Login', 'width=700,height=500,top=40,left=40')
+            var id = setInterval(function() {
+                if (window.location.href.indexOf("/login/index.php") < 0) {
+                    clearInterval(id);
+                    console.log("window is")
+                    console.log(win)
+                }
+            }, 500);
         }
-        xhr.send();
     }
-    console.log("sid is: " + sid)
+    xhr.send();
 }
 
 function logout() {
@@ -243,16 +259,17 @@ function logout() {
     var connectObj = {
         "message_type": "closing",
         "jid": jidGlobal,
-        "sid": getCookie("sid")
+        "sid": getCookie("sid"),
+        "sessionize": sidFromSessionize
     }
     setCookie("sid", "", -1)
     connection.send(JSON.stringify(connectObj))
     setTimeout(() => {
             spotifyLogoutWindow.close()
             window.location.href = "/jukebox?jid=" + jidGlobal
-        }, 500)
+        }, 1000)
         //checkinWithServer()
-
+    isLoggedIn = false
 }
 
 function playJukeBox() {
@@ -272,6 +289,7 @@ function playJukeBox() {
 function playSong() {
     console.log("Play song")
     var url = "/playqueue?jid=" + jidGlobal
+    var xhr = new XMLHttpRequest()
     xhr.open("GET", url, true);
     xhr.onreadystatechange = function() { // Call a function when the state changes.
         if (this.readyState === XMLHttpRequest.DONE && this.status === 200) {
@@ -292,7 +310,7 @@ function searchForSong() {
     console.log(searchVal)
 
     var xhr = new XMLHttpRequest();
-    var url = "/searchforsong?query=" + searchVal + "&sid=" + getCookie("sid")
+    var url = "/searchforsong?query=" + searchVal + "&sessionize=" + sidFromSessionize
     xhr.open("GET", url, true)
     xhr.onreadystatechange = function() {
         if (this.readyState === XMLHttpRequest.DONE || this.status === 200) {
@@ -340,21 +358,17 @@ function skipSong() {
     xhr.send()
 }
 
-var HOST = location.origin.replace(/^http/, 'ws')
-var connection = new WebSocket(HOST);
-
-connection.onopen = function() {
+function handlOnOpen() {
     console.log('Websocket Client Connected')
 }
 
-connection.onmessage = function(message) {
+function handleOnMessage(message) {
     console.log("message is ")
     console.log(message)
     if (message.data) {
         var data = JSON.parse(message.data)
         switch (data.message_type) {
             case 'register_response':
-                document.getElementById("injukebox").innerHTML = data.injukebox
                 isOwner = data.isowner
                 checkinDuration()
                 break
@@ -387,6 +401,12 @@ connection.onmessage = function(message) {
             case 'register_error':
                 console.log(data.message)
                 alert(data.message)
+                break
+            case 'login_sessionize_success':
+                console.log("Successfully logged in")
+                isLoggedIn = true
+                checkLoginStatus()
+                isOwner = data.isOwner
                 break
             default:
                 console.log(data)

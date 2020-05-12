@@ -756,12 +756,15 @@ wsServer.on('request', function(request) {
                     if (jboxToSessionizeOwner[data.jid] === data.sessionize) {
                         console.log("Owner is leaving sid: " + data.sessionize)
                         jboxToSessionizeOwner[data.jid] = ""
-                        if (jboxToSessionizeOwner[data.jid].length > 0) {
-                            console.log(jboxToSessionizeOwner[data.jid])
-                            jboxToSessionizeMap[data.jid] = jboxToSessionizeMap[data.jid][0]
+                        if (jboxToSessionizeMap[data.jid].length > 0) {
+                            console.log(jboxToSessionizeMap[data.jid])
+                            jboxToSessionizeOwner[data.jid] = jboxToSessionizeMap[data.jid][0]
                             console.log("New owner has been elected sid: " + jboxToSessionizeOwner[data.jid])
                             var conn = sessionizeToConnectMap[jboxToSessionizeOwner[data.jid]]
                             conn.sendUTF(JSON.stringify({ "message_type": "new_owner", "isowner": true }))
+                        } else {
+                            console.log("No more elements in jboxToSessionizeMap")
+                            console.log(jboxToSessionizeMap[data.jid])
                         }
                     }
                 }

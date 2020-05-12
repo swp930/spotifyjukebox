@@ -500,8 +500,10 @@ function checkinDuration(sid, res) {
         if (response.body) {
             console.log("Checkin duration item ")
             var parsed = JSON.parse(response.body)
-            console.log("progress_ms is: " + parsed.progress_ms)
-            console.log("duration_ms is: " + parsed.item.duration_ms)
+            if (parsed) {
+                console.log("progress_ms is: " + parsed.progress_ms)
+                console.log("duration_ms is: " + parsed.item.duration_ms)
+            }
             res.send(response.body)
         }
     });

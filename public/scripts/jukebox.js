@@ -409,6 +409,9 @@ function handleOnMessage(message) {
                 checkinWithServer()
                 isOwner = data.isOwner
                 break
+            case 'new_owner':
+                isOwner = data.isOwner
+                break
             default:
                 console.log(data)
                 break

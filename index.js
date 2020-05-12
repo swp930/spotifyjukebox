@@ -755,7 +755,7 @@ wsServer.on('request', function(request) {
 
                     if (jboxToSessionizeOwner[data.jid] === data.sessionize) {
                         console.log("Owner is leaving sid: " + data.sessionize)
-                        jboxToSessionizeOwner[data.sessionize] = ""
+                        jboxToSessionizeOwner[data.jid] = ""
                         if (jboxToSessionizeOwner[data.sessionize].length > 0) {
                             console.log(jboxToSessionizeOwner[data.jid])
                             jboxToSessionizeMap[data.jid] = jboxToSessionizeMap[data.jid][0]

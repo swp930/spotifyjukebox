@@ -761,7 +761,7 @@ wsServer.on('request', function(request) {
                             jboxToSessionizeOwner[data.jid] = jboxToSessionizeMap[data.jid][0]
                             console.log("New owner has been elected sid: " + jboxToSessionizeOwner[data.jid])
                             var conn = sessionizeToConnectMap[jboxToSessionizeOwner[data.jid]]
-                            conn.sendUTF(JSON.stringify({ "message_type": "new_owner", "isowner": true }))
+                            conn.sendUTF(JSON.stringify({ "message_type": "new_owner", "isOwner": true }))
                         } else {
                             console.log("No more elements in jboxToSessionizeMap")
                             console.log(jboxToSessionizeMap[data.jid])

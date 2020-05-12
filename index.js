@@ -23,6 +23,7 @@ var jboxToQueueMap = {}
 var jboxToSessionizeOwner = {}
 var entrancesToJidMap = []
 var exitsToJidMap = []
+var websocketsLeaving = []
 
 //var client_id = '5cdc53405b224d4fa1d1b8eef875c3d8'; // Your client id
 //var client_secret = 'fa990d3dd5cc491f94f38a8e57d19ebe'; // Your secret
@@ -667,6 +668,7 @@ wsServer.on('request', function(request) {
                 console.log("New session id: " + request.resourceURL.query.sid)
                 console.log((new Date()) + ' Connection accepted.');
                 var connection = request.accept(null, request.origin);
+                connection.sid = request.resourceURL.query.sid
                 sessionizeToConnectMap[request.resourceURL.query.sid] = connection
                 entrancesToJidMap.push(request.resourceURL.query.sid)
             } else {
@@ -779,4 +781,8 @@ wsServer.on('request', function(request) {
         }
     })
 
+    connection.on('close', function(reasonCode, description) {
+        websocketsLeaving.push(connection.sid)
+        console.log((new Date()) + ' Peer ' + connection.sid + ' disconnected.');
+    });
 });

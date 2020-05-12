@@ -37,6 +37,18 @@ function jboxToSessionizeOwner() {
     sendText("console.log(jboxToSessionizeOwner)")
 }
 
+function jboxToSessionizeOwner() {
+    sendText("console.log(jboxToSessionizeOwner)")
+}
+
+function entrancesToJidMap() {
+    sendText("console.log(entrancesToJidMap)")
+}
+
+function entrancesToJidMap() {
+    sendText("console.log(exitsToJidMap)")
+}
+
 function resetVars() {
     var str = "sessionizeToConnectMap = {};sessionizeToIDMap = {};jboxToSessionizeMap = {};jboxToQueueMap = {}; jboxToSessionizeOwner = {};"
     sendText(str)

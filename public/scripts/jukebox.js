@@ -407,6 +407,7 @@ function handleOnMessage(message) {
                 isLoggedIn = true
                 checkLoginStatus()
                 checkinWithServer()
+                checkinDuration()
                 isOwner = data.isOwner
                 break
             case 'new_owner':

@@ -21,6 +21,8 @@ var sessionizeToIDMap = {}
 var jboxToSessionizeMap = {}
 var jboxToQueueMap = {}
 var jboxToSessionizeOwner = {}
+var entrancesToJidMap = {}
+var exitsToJidMap = {}
 
 //var client_id = '5cdc53405b224d4fa1d1b8eef875c3d8'; // Your client id
 //var client_secret = 'fa990d3dd5cc491f94f38a8e57d19ebe'; // Your secret
@@ -666,6 +668,10 @@ wsServer.on('request', function(request) {
                 console.log((new Date()) + ' Connection accepted.');
                 var connection = request.accept(null, request.origin);
                 sessionizeToConnectMap[request.resourceURL.query.sid] = connection
+                if (!entrancesToJidMap[data.jid]) {
+                    entrancesToJidMap[data.jid] = []
+                }
+                entrancesToJidMap[data.jid].push(request.resourceURL.query.sid)
             } else {
                 console.log("No sid in query. Connection not accepted")
             }
@@ -736,6 +742,11 @@ wsServer.on('request', function(request) {
                 break
             case 'closing':
                 // Deleting sessionize data
+                if (!exitsToJidMap[data.jid]) {
+                    exitsToJidMap[data.jid] = []
+                }
+                exitsToJidMap[data.jid].push(data.sessionize)
+
                 if (data.sessionize) {
                     console.log("Deleting data.sessionize")
                     var sessionize = data.sessionize

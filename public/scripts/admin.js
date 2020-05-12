@@ -45,9 +45,10 @@ function entrancesToJidMap() {
     sendText("console.log(entrancesToJidMap)")
 }
 
-function entrancesToJidMap() {
+function exitsToJidMap() {
     sendText("console.log(exitsToJidMap)")
 }
+
 
 function resetVars() {
     var str = "sessionizeToConnectMap = {};sessionizeToIDMap = {};jboxToSessionizeMap = {};jboxToQueueMap = {}; jboxToSessionizeOwner = {};"

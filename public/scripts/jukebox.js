@@ -241,13 +241,13 @@ function login() {
             var redirectURL = response.url
             console.log(redirectURL)
             const win = window.open(redirectURL, 'Spotify Login', 'width=700,height=500,top=40,left=40')
-            var id = setInterval(function() {
-                if (window.location.href.indexOf("/login/index.php") < 0) {
-                    clearInterval(id);
-                    console.log("window is")
-                    console.log(win)
-                }
-            }, 500);
+                /*var id = setInterval(function() {
+                    if (window.location.href.indexOf("/login/index.php") < 0) {
+                        clearInterval(id);
+                        console.log("window is")
+                        console.log(win)
+                    }
+                }, 500);*/
         }
     }
     xhr.send();

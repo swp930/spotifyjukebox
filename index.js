@@ -197,8 +197,8 @@ app.get('/checkinduration', function(req, res) {
     console.log('req.query')
     console.log(req.query)
     var jid = req.query.jid
-    if (jid && jukeboxToSessionMap[jid] && jukeboxToSessionMap[jid].length > 0) {
-        var sid = jukeboxToSessionMap[jid][0]
+    if (jid && jboxToSessionizeMap[jid] && jboxToSessionizeMap[jid].length > 0) {
+        var sid = jboxToSessionizeMap[jid][0]
         checkinDuration(sid, res)
     } else {
         res.send({})
@@ -495,7 +495,7 @@ app.get('/skipsong', function(req, res) {
 function checkinDuration(sid, res) {
     console.log("Checking in duration")
     console.log("Sid is: " + sid)
-    var access = sessionToIDMap[sid].access
+    var access = sessionizeToConnectMap[sid].access
     var options = {
         url: 'https://api.spotify.com/v1/me/player/currently-playing',
         headers: { 'Authorization': 'Bearer ' + access }

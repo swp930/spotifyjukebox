@@ -406,6 +406,7 @@ function handleOnMessage(message) {
                 console.log("Successfully logged in")
                 isLoggedIn = true
                 checkLoginStatus()
+                checkinWithServer()
                 isOwner = data.isOwner
                 break
             default:

@@ -13,23 +13,34 @@ function send() {
     xhr.send()
 }
 
-function sessionToIDMap() {
-    sendText("console.log(sessionToIDMap)")
+function sessionizeToConnectMap() {
+    sendText("console.log(sessionizeToConnectMap)")
 }
 
-function sessionToConnectMap() {
-    sendText("console.log(sessionToConnectMap)")
+function sessionizeToConnectMapKeys() {
+    sendText("console.log(Object.keys(sessionizeToConnectMap))")
 }
 
-function jukeboxToSessionMap() {
-    sendText("console.log(jukeboxToSessionMap)")
+function sessionizeToIDMap() {
+    sendText("console.log(sessionizeToIDMap)")
 }
 
-function jukeboxToSessionMapKeys() {
-    sendText("console.log(Object.keys(jukeboxToSessionMap))")
+function jboxToSessionizeMap() {
+    sendText("console.log(jboxToSessionizeMap)")
 }
 
+function jboxToQueueMap() {
+    sendText("console.log(jboxToQueueMap)")
+}
 
+function jboxToSessionizeOwner() {
+    sendText("console.log(jboxToSessionizeOwner)")
+}
+
+function resetVars() {
+    var str = "sessionizeToConnectMap = {};sessionizeToIDMap = {};jboxToSessionizeMap = {};jboxToQueueMap = {}; jboxToSessionizeOwner = {};"
+    sendText(str)
+}
 
 function sendText(str) {
 

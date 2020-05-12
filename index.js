@@ -16,12 +16,6 @@ var http = require('http')
 const { Pool, Client } = require('pg');
 var webSocketServer = require('websocket').server;
 
-var sessionToConnectMap = {}
-var sessionToIDMap = {}
-var jukeboxToSessionMap = {}
-var jukeboxToQueueMap = {}
-var jukeboxToSidOwnerMap = {}
-
 var sessionizeToConnectMap = {}
 var sessionizeToIDMap = {}
 var jboxToSessionizeMap = {}
@@ -151,7 +145,6 @@ app.get('/callback', function(req, res) {
                         urlRedirect += "&sid=" + body.id
                         console.log("urlRedirect")
                         console.log(urlRedirect)
-                        sessionToIDMap[body.id] = id
                         sessionizeToIDMap[sessionize] = id
                         if (!jboxToSessionizeMap[jid]) {
                             jboxToSessionizeMap[jid] = []

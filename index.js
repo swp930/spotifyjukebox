@@ -502,7 +502,8 @@ function checkinDuration(sid, res) {
             var parsed = JSON.parse(response.body)
             if (parsed) {
                 console.log("progress_ms is: " + parsed.progress_ms)
-                console.log("duration_ms is: " + parsed.item.duration_ms)
+                if (parsed.item)
+                    console.log("duration_ms is: " + parsed.item.duration_ms)
             }
             res.send(response.body)
         }

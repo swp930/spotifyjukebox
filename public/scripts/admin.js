@@ -51,7 +51,7 @@ function exitsToJidMap() {
 
 
 function resetVars() {
-    var str = "sessionizeToConnectMap = {};sessionizeToIDMap = {};jboxToSessionizeMap = {};jboxToQueueMap = {}; jboxToSessionizeOwner = {};"
+    var str = "sessionizeToConnectMap = {};sessionizeToIDMap = {};jboxToSessionizeMap = {};jboxToQueueMap = {}; jboxToSessionizeOwner = {}; entrancesToJidMap = []; exitsToJidMap = [];"
     sendText(str)
 }
 

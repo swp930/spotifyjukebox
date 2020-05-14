@@ -783,6 +783,6 @@ wsServer.on('request', function(request) {
 
     connection.on('close', function(reasonCode, description) {
         websocketsLeaving.push(connection.sid)
-        console.log((new Date()) + ' Peer ' + connection.sid + ' disconnected.');
+        console.log(' Peer ' + connection.sid + ' disconnected.');
     });
 });

@@ -334,6 +334,8 @@ function searchForSong() {
                 }
                 songs.push(song)
             }
+            if (songs.length <= 0)
+                alert("No songs found")
             constructResultsView(songs)
         }
     }

@@ -742,7 +742,7 @@ wsServer.on('request', function(request) {
                 break
             case 'closing':
                 // Deleting sessionize data
-                var sidOnClose = data.sessionize
+                /*var sidOnClose = data.sessionize
                 var jidOnClose = data.jid
                 exitsToJidMap.push(data.sessionize)
 
@@ -776,7 +776,7 @@ wsServer.on('request', function(request) {
                             console.log(jboxToSessionizeMap[jidOnClose])
                         }
                     }
-                }
+                }*/
                 break
             default:
                 break
@@ -788,5 +788,40 @@ wsServer.on('request', function(request) {
         obj[connection.jid] = connection.sid
         websocketsLeaving.push(obj)
         console.log(' Peer ' + connection.sid + ' disconnected.');
+
+        var sidOnClose = connection.sid
+        var jidOnClose = connection.jid
+
+        if (sidOnClose) {
+            console.log("Deleting data.sessionize")
+            delete sessionizeToConnectMap[sidOnClose]
+            delete sessionizeToIDMap[sidOnClose]
+        }
+
+        // Clear up queue and jukebox
+        if (jboxToSessionizeMap[jidOnClose]) {
+            for (var i = 0; i < jboxToSessionizeMap[jidOnClose].length; i++) {
+                if (jboxToSessionizeMap[jidOnClose][i] === sidOnClose) {
+                    jboxToSessionizeMap[jidOnClose].splice(i, 1)
+                    console.log("Removing sessionize: " + sidOnClose + "from jid: " + jidOnClose)
+                    break
+                }
+            }
+
+            if (jboxToSessionizeOwner[jidOnClose] === sidOnClose) {
+                console.log("Owner is leaving sid: " + sidOnClose)
+                jboxToSessionizeOwner[jidOnClose] = ""
+                if (jboxToSessionizeMap[jidOnClose].length > 0) {
+                    console.log(jboxToSessionizeMap[jidOnClose])
+                    jboxToSessionizeOwner[jidOnClose] = jboxToSessionizeMap[jidOnClose][0]
+                    console.log("New owner has been elected sid: " + jboxToSessionizeOwner[jidOnClose])
+                    var conn = sessionizeToConnectMap[jboxToSessionizeOwner[jidOnClose]]
+                    conn.sendUTF(JSON.stringify({ "message_type": "new_owner", "isOwner": true }))
+                } else {
+                    console.log("No more elements in jboxToSessionizeMap")
+                    console.log(jboxToSessionizeMap[jidOnClose])
+                }
+            }
+        }
     });
 });

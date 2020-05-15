@@ -669,6 +669,7 @@ wsServer.on('request', function(request) {
                 console.log((new Date()) + ' Connection accepted.');
                 var connection = request.accept(null, request.origin);
                 connection.sid = request.resourceURL.query.sid
+                connection.jid = request.resourceURL.query.jid || ""
                 sessionizeToConnectMap[request.resourceURL.query.sid] = connection
                 entrancesToJidMap.push(request.resourceURL.query.sid)
             } else {
@@ -741,37 +742,38 @@ wsServer.on('request', function(request) {
                 break
             case 'closing':
                 // Deleting sessionize data
+                var sidOnClose = data.sessionize
+                var jidOnClose = data.jid
                 exitsToJidMap.push(data.sessionize)
 
-                if (data.sessionize) {
+                if (sidOnClose) {
                     console.log("Deleting data.sessionize")
-                    var sessionize = data.sessionize
-                    delete sessionizeToConnectMap[sessionize]
-                    delete sessionizeToIDMap[sessionize]
+                    delete sessionizeToConnectMap[sidOnClose]
+                    delete sessionizeToIDMap[sidOnClose]
                 }
 
                 // Clear up queue and jukebox
-                if (jboxToSessionizeMap[data.jid]) {
-                    for (var i = 0; i < jboxToSessionizeMap[data.jid].length; i++) {
-                        if (jboxToSessionizeMap[data.jid][i] === data.sessionize) {
-                            jboxToSessionizeMap[data.jid].splice(i, 1)
-                            console.log("Removing sessionize: " + data.sessionize + "from jid: " + data.jid)
+                if (jboxToSessionizeMap[jidOnClose]) {
+                    for (var i = 0; i < jboxToSessionizeMap[jidOnClose].length; i++) {
+                        if (jboxToSessionizeMap[jidOnClose][i] === sidOnClose) {
+                            jboxToSessionizeMap[jidOnClose].splice(i, 1)
+                            console.log("Removing sessionize: " + sidOnClose + "from jid: " + jidOnClose)
                             break
                         }
                     }
 
-                    if (jboxToSessionizeOwner[data.jid] === data.sessionize) {
-                        console.log("Owner is leaving sid: " + data.sessionize)
-                        jboxToSessionizeOwner[data.jid] = ""
-                        if (jboxToSessionizeMap[data.jid].length > 0) {
-                            console.log(jboxToSessionizeMap[data.jid])
-                            jboxToSessionizeOwner[data.jid] = jboxToSessionizeMap[data.jid][0]
-                            console.log("New owner has been elected sid: " + jboxToSessionizeOwner[data.jid])
-                            var conn = sessionizeToConnectMap[jboxToSessionizeOwner[data.jid]]
+                    if (jboxToSessionizeOwner[jidOnClose] === sidOnClose) {
+                        console.log("Owner is leaving sid: " + sidOnClose)
+                        jboxToSessionizeOwner[jidOnClose] = ""
+                        if (jboxToSessionizeMap[jidOnClose].length > 0) {
+                            console.log(jboxToSessionizeMap[jidOnClose])
+                            jboxToSessionizeOwner[jidOnClose] = jboxToSessionizeMap[jidOnClose][0]
+                            console.log("New owner has been elected sid: " + jboxToSessionizeOwner[jidOnClose])
+                            var conn = sessionizeToConnectMap[jboxToSessionizeOwner[jidOnClose]]
                             conn.sendUTF(JSON.stringify({ "message_type": "new_owner", "isOwner": true }))
                         } else {
                             console.log("No more elements in jboxToSessionizeMap")
-                            console.log(jboxToSessionizeMap[data.jid])
+                            console.log(jboxToSessionizeMap[jidOnClose])
                         }
                     }
                 }
@@ -782,7 +784,9 @@ wsServer.on('request', function(request) {
     })
 
     connection.on('close', function(reasonCode, description) {
-        websocketsLeaving.push(connection.sid)
+        var obj = {}
+        obj[connection.jid] = connection.sid
+        websocketsLeaving.push(obj)
         console.log(' Peer ' + connection.sid + ' disconnected.');
     });
 });

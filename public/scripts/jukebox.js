@@ -30,6 +30,9 @@ window.onload = function() {
                 sidFromSessionize = response.sid
                 console.log("New session id is: " + sidFromSessionize)
                 var urlAddition = "?sid=" + sidFromSessionize
+                if (jidGlobal) {
+                    urlAddition += "&jid=" + jidGlobal
+                }
                 HOST += urlAddition
                 connection = new WebSocket(HOST);
                 connection.onopen = handlOnOpen

@@ -822,6 +822,9 @@ wsServer.on('request', function(request) {
                     console.log(jboxToSessionizeMap[jidOnClose])
                 }
             }
+
+            if (jboxToSessionizeMap[jidOnClose].length == 0)
+                delete jboxToSessionizeMap[jidOnClose]
         }
     });
 });

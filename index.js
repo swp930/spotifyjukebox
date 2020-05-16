@@ -256,7 +256,7 @@ app.get('/login', function(req, res) {
     console.log('req.query')
     console.log(req.query)
 
-    var scope = 'user-read-private user-read-email user-modify-playback-state user-read-currently-playing';
+    var scope = 'user-read-private user-read-email user-modify-playback-state user-read-currently-playing user-read-playback-state';
 
     var url = 'https://accounts.spotify.com/authorize?' + querystring.stringify({
         response_type: 'code',
@@ -550,20 +550,74 @@ function playSongOnSid(sid, uris) {
         if (response.body) {
             if (response.body.error) {
                 console.log(response.body.error)
-                if (sessionizeToConnectMap[sid]) {
-                    var conn = sessionizeToConnectMap[sid]
-                    var message = {
-                        "message_type": "play_error",
-                        "error": response.body.error
+                if (response.body.error.reason == "NO_ACTIVE_DEVICE") {
+                    getActiveDevices(sid, uris)
+                } else {
+                    if (sessionizeToConnectMap[sid]) {
+                        var conn = sessionizeToConnectMap[sid]
+                        var message = {
+                            "message_type": "play_error",
+                            "error": response.body.error
+                        }
+                        console.log("Playback error for sid: " + sid)
+                        conn.send(JSON.stringify(message))
                     }
-                    console.log("Playback error for sid: " + sid)
-                    conn.send(JSON.stringify(message))
                 }
             } else {
                 console.log("No /playqueue error, song played for sid: " + sid)
             }
         }
     });
+}
+
+function getActiveDevices(sessionize, uris) {
+    console.log("Getting active devices")
+    console.log(sessionize)
+    var access = sessionizeToIDMap[sessionize].access
+    var options = {
+        url: "https://api.spotify.com/v1/me/player/devices",
+        headers: { 'Authorization': 'Bearer ' + access },
+        json: true
+    };
+
+    request.get(options, function(error, response, body) {
+        var validDeviceFound = false
+        console.log(body)
+        if (body.devices) {
+            if (body.devices[0]) {
+                if (body.devices[0].id) {
+                    validDeviceFound = true
+                    var urlWithDevice = 'https://api.spotify.com/v1/me/player/play?device_id=' + body.devices[0].id
+                    var options = {
+                        url: urlWithDevice,
+                        headers: { 'Authorization': 'Bearer ' + access },
+                        body: {
+                            "uris": uris
+                        },
+                        json: true
+                    };
+                    request.put(options, function(error, response, body) {
+                        if (response.body) {
+                            if (response.body.error) {
+                                console.log(response.body.error)
+                            }
+                        }
+                    })
+                }
+            }
+        }
+        if (!validDeviceFound) {
+            if (sessionizeToConnectMap[sid]) {
+                var conn = sessionizeToConnectMap[sid]
+                var message = {
+                    "message_type": "play_error",
+                    "error": response.body.error
+                }
+                console.log("Playback error for sid: " + sid)
+                conn.send(JSON.stringify(message))
+            }
+        }
+    })
 }
 
 function searchForSongOnSid(sessionize, query, res) {

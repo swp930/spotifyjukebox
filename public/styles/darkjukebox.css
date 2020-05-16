@@ -27,6 +27,7 @@ html {
     font-weight: 500;
     padding: 4px 5px;
     margin: 0;
+    outline: none;
     text-align: right;
 }
 
@@ -78,6 +79,7 @@ html {
     font-size: 17px;
     font-weight: 600;
     height: 20px;
+    outline: none;
     width: 20px;
 }
 
@@ -167,6 +169,7 @@ progress[value] {
     /* Reset the default appearance */
     -webkit-appearance: none;
     appearance: none;
+    padding-right: 5px;
 }
 
 progress[value]::-webkit-progress-bar {

@@ -53,6 +53,8 @@ window.onclick = function(event) {
         this.console.log("Clicked on search")
     } else {
         this.clearResults()
+        var inp = document.getElementById("search_song")
+        inp.val = ""
     }
 }
 

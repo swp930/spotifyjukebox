@@ -85,6 +85,7 @@ function checkinDuration() {
     xhr.onreadystatechange = function() { // Call a function when the state changes.
         if (this.readyState === XMLHttpRequest.DONE && this.status === 200) {
             var response = JSON.parse(xhr.response)
+            console.log("Checkin duration response")
             console.log(response)
             var remaining_time
             if (response.item) {
@@ -194,6 +195,8 @@ function decrementTime() {
     if (progressValue <= 1) {
         clearInterval(intervalVar)
         if (isOwner) {
+            console.log("Is Owner")
+            console.log("About to skip")
             skipSong()
         }
     }
@@ -341,7 +344,11 @@ function handleOnMessage(message) {
                 }
                 break
             case 'length_response':
-                document.getElementById("remaining_time").innerHTML = Math.round(parseInt(data.song_length) / 1000)
+                console.log("length_response")
+                console.log(data)
+                    //document.getElementById("remaining_time").innerHTML = Math.round(parseInt(data.song_length) / 1000)
+                remainingTime = data.song_length
+                totalTime = data.song_length
                 clearInterval(intervalVar)
                 lastCalled = (new Date()).getTime()
                 intervalVar = setInterval(function() {

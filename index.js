@@ -49,6 +49,11 @@ app.use(express.static(__dirname + '/public'))
     .use(cookieParser())
     .use(bodyParser.json())
 
+app.use(express.static(__dirname + '/public'))
+    .use(cors())
+    .use(cookieParser())
+    .use(bodyParser.json())
+
 app.get('/addtoqueue', function(req, res) {
     console.log('/addtoqueue')
     console.log('req.query.jid')
@@ -236,13 +241,11 @@ app.get('/handletext', function(req, res) {
 })
 
 app.get('/jukebox', function(req, res) {
-    console.log('/jukebox')
-    console.log('query parameters:')
-    console.log(req.query)
     var options = {
-        root: path.join(__dirname, "public")
-    }
-    res.sendFile('jukebox.html', options)
+            root: path.join(__dirname, "public")
+        }
+        //res.sendFile('jukebox.html', options)
+    res.sendFile('darkjukebox.html', options)
 })
 
 app.get('/login', function(req, res) {
@@ -448,6 +451,9 @@ app.get('/searchforsong', function(req, res) {
     if (req.query.sessionize && req.query.query) {
         //var access = sessionToIDMap[req.query.sid].access
         searchForSongOnSid(req.query.sessionize, req.query.query, res)
+    } else {
+        console.log("Invalid session or query")
+        res.send({})
     }
 })
 
@@ -481,7 +487,7 @@ app.get('/skipsong', function(req, res) {
                 }
                 sendBackSongLength(jid, songlength)
             }
-        } else if (jukeboxToQueueMap[jid]) {
+        } else if (jboxToQueueMap[jid]) {
             updateQueue(jid)
         }
     }

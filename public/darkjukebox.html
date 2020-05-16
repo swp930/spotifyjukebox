@@ -15,100 +15,42 @@
                 Jukebox
             </div>
             <div class="control-center">
-                <div>
-                    <p class="control-center-text">jid is</p>
+                <div id="login">
+                    <button class="control-center-button" onclick="login()">Log in</button>
+                </div>
+                <div id="logout">
+                    <button class="control-center-button" onclick="logout()">Log out</button>
                 </div>
                 <div>
-                    <p class="control-center-text">Swapnil is logged in</p>
+                    <p id="status" class="control-center-text"></p>
                 </div>
                 <div>
-                    <p class="control-center-text">Connected to Jukebox</p>
+                    <button class="control-center-button" onclick="playSong()">Play Jukebox</button>
                 </div>
                 <div>
-                    <button class="control-center-button">Log in</button>
+                    <button class="control-center-button" onclick="skipSong()">Skip Song</button>
                 </div>
-                <div>
-                    <button class="control-center-button">Log out</button>
-                </div>
-                <div>
-                    <button class="control-center-button">Connect to Jukebox</button>
-                </div>
-                <div>
-                    <button class="control-center-button">Invite Others</button>
-                </div>
-                <div>
-                    <button class="control-center-button">Play Jukebox</button>
-                </div>
-                <div>
-                    <button class="control-center-button">Skip Song</button>
-                </div>
+                <progress id="remaining_time_progress" value="32" max="1000"> 32% </progress>
+                <br />
                 <br />
                 <div class="search-group">
                     <div class="control-center-input-container">
-                        <button class="control-center-input-button"></button>
-                        <input id="cci" class="control-center-input" placeholder="Search for songs" onfocus="ccifocus()" onfocusout="clearResults()"></input>
+                        <button id="search_song_button" class="control-center-input-button" onclick="searchForSong()"></button>
+                        <input id="search_song" class="control-center-input" placeholder="Search for songs" onfocus="ccifocus()" oninput="searchChange()" onkeypress="handleSearchKey(event);"></input>
                     </div>
                 </div>
                 <div class="search-group">
                     <div id="song-results" class="output-container">
-                        <div class="output-container-elem">
-                            <button class="control-center-input-button"></button>
-                            <p class="output-container-elem-p">Song - Artist</p>
-                        </div>
-                        <div class="output-container-elem">
-                            <button class="control-center-input-button"></button>
-                            <p class="output-container-elem-p">Song - Artist</p>
-                        </div>
-                        <div class="output-container-elem">
-                            <button class="control-center-input-button"></button>
-                            <p class="output-container-elem-p">Song - Artist</p>
-                        </div>
-                        <div class="output-container-elem">
-                            <button class="control-center-input-button"></button>
-                            <p class="output-container-elem-p">Song - Artist</p>
-                        </div>
-                        <div class="output-container-elem">
-                            <button class="control-center-input-button"></button>
-                            <p class="output-container-elem-p">Song - Artist</p>
-                        </div>
-                        <div class="output-container-elem">
-                            <button class="control-center-input-button"></button>
-                            <p class="output-container-elem-p">Song - Artist</p>
-                        </div>
-                        <div class="output-container-elem">
-                            <button class="control-center-input-button"></button>
-                            <p class="output-container-elem-p">Song - Artist</p>
-                        </div>
-                        <div class="output-container-elem">
-                            <button class="control-center-input-button"></button>
-                            <p class="output-container-elem-p">Song - Artist</p>
-                        </div>
-                        <div class="output-container-elem">
-                            <button class="control-center-input-button"></button>
-                            <p class="output-container-elem-p">Song - Artist</p>
-                        </div>
-                        <div class="output-container-elem">
-                            <button class="control-center-input-button"></button>
-                            <p class="output-container-elem-p">Song - Artist</p>
-                        </div>
-                        <div class="output-container-elem">
-                            <button class="control-center-input-button"></button>
-                            <p class="output-container-elem-p">Song - Artist</p>
-                        </div>
-                        <div class="output-container-elem">
-                            <button class="control-center-input-button"></button>
-                            <p class="output-container-elem-p">Song - Artist</p>
-                        </div>
-                        <div class="output-container-elem">
-                            <button class="control-center-input-button"></button>
-                            <p class="output-container-elem-p">Song - Artist</p>
-                        </div>
                     </div>
                 </div>
             </div>
         </div>
         <div class="flow-container-b">
-            <div class="results-holder"></div>
+            <div id="results-holder" class="results-holder">
+                <div class="results-item-container">
+                    <div class="results-item">Song - Artist</div>
+                </div>
+            </div>
         </div>
     </div>
     <script src='./scripts/darkjukebox.js'></script>

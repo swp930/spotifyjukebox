@@ -54,7 +54,8 @@ window.onclick = function(event) {
     } else {
         this.clearResults()
         var inp = document.getElementById("search_song")
-        inp.val = ""
+        inp.value = ""
+        this.console.log(inp.value)
     }
 }
 
@@ -232,17 +233,21 @@ function logout() {
 }
 
 function playSong() {
-    console.log("Play song")
-    var url = "/playqueue?jid=" + jidGlobal
-    var xhr = new XMLHttpRequest()
-    xhr.open("GET", url, true);
-    xhr.onreadystatechange = function() { // Call a function when the state changes.
-        if (this.readyState === XMLHttpRequest.DONE && this.status === 200) {
-            var response = JSON.parse(xhr.response)
-            console.log(response)
+    if (isLoggedIn) {
+        console.log("Play song")
+        var url = "/playqueue?jid=" + jidGlobal
+        var xhr = new XMLHttpRequest()
+        xhr.open("GET", url, true);
+        xhr.onreadystatechange = function() { // Call a function when the state changes.
+            if (this.readyState === XMLHttpRequest.DONE && this.status === 200) {
+                var response = JSON.parse(xhr.response)
+                console.log(response)
+            }
         }
+        xhr.send()
+    } else {
+        alert("Please log in first.")
     }
-    xhr.send()
 }
 
 function searchChange() {
@@ -293,17 +298,22 @@ function searchForSong() {
 }
 
 function skipSong() {
-    console.log("Skip song")
-    var xhr = new XMLHttpRequest();
-    var url = "/skipsong?jid=" + jidGlobal
-    xhr.open("GET", url, true);
-    xhr.onreadystatechange = function() { // Call a function when the state changes.
-        if (this.readyState === XMLHttpRequest.DONE && this.status === 200) {
-            var response = JSON.parse(xhr.response)
-            console.log(response)
+    if (isLoggedIn) {
+        console.log("Skip song")
+        var xhr = new XMLHttpRequest();
+        var url = "/skipsong?jid=" + jidGlobal
+        xhr.open("GET", url, true);
+        xhr.onreadystatechange = function() { // Call a function when the state changes.
+            if (this.readyState === XMLHttpRequest.DONE && this.status === 200) {
+                var response = JSON.parse(xhr.response)
+                console.log(response)
+            }
         }
+        xhr.send()
+    } else {
+        alert("Please log in first.")
     }
-    xhr.send()
+
 }
 
 function handleOnOpen() {

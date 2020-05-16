@@ -491,7 +491,7 @@ app.get('/skipsong', function(req, res) {
 function checkinDuration(sid, res) {
     console.log("Checking in duration")
     console.log("Sid is: " + sid)
-    var access = sessionizeToConnectMap[sid].access
+    var access = sessionizeToIDMap[sid].access
     var options = {
         url: 'https://api.spotify.com/v1/me/player/currently-playing',
         headers: { 'Authorization': 'Bearer ' + access }

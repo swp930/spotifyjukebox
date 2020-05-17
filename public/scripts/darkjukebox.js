@@ -396,7 +396,7 @@ function ccifocus() {
     songResults.style.height = "230px"
     songResults.style.paddingTop = "5px"
     songResults.style.paddingBottom = "5px"
-    songResults.style.overflow = "scroll"
+    songResults.style.overflow = "auto"
 }
 
 function clearResults() {
@@ -404,5 +404,5 @@ function clearResults() {
     songResults.style.height = "0px"
     songResults.style.paddingTop = "0px"
     songResults.style.paddingBottom = "0px"
-    songResults.style.overflow = "hidden"
+    songResults.style.overflow = "auto"
 }

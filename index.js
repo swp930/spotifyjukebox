@@ -49,11 +49,6 @@ app.use(express.static(__dirname + '/public'))
     .use(cookieParser())
     .use(bodyParser.json())
 
-app.use(express.static(__dirname + '/public'))
-    .use(cors())
-    .use(cookieParser())
-    .use(bodyParser.json())
-
 app.get('/addtoqueue', function(req, res) {
     console.log('/addtoqueue')
     console.log('req.query.jid')

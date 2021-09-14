@@ -68,3 +68,29 @@ function sendText(str) {
     }
     xhr.send()
 }
+
+function handleGetJidInfo() {
+    var jid = document.getElementById("jid-info").value
+    getData('/getjidinfo?jid=' + jid, (res) => {
+        console.log("Retrieved")
+        console.log(res)
+    }, () => {
+        console.log("Error with getting jid info")
+    })
+}
+
+function getData(url, callback, error) {
+    var xhr = new XMLHttpRequest()
+    xhr.open("GET", url, true);
+    xhr.onreadystatechange = function() { // Call a function when the state changes.
+        if(this.readyState === XMLHttpRequest.DONE) {
+            if(this.status === 200) {
+                var response = JSON.parse(xhr.response)
+                callback(response)
+            } else {
+                error()
+            }
+        }
+    }
+    xhr.send()
+}

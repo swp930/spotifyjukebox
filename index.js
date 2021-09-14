@@ -25,8 +25,6 @@ var entrancesToJidMap = []
 var exitsToJidMap = []
 var websocketsLeaving = []
 
-//var client_id = '5cdc53405b224d4fa1d1b8eef875c3d8'; // Your client id
-//var client_secret = 'fa990d3dd5cc491f94f38a8e57d19ebe'; // Your secret
 var client_id = process.env.CLIENT_ID; // Your client id
 var client_secret = process.env.CLIENT_SECRET; // Your secret
 var redirect_uri = process.env.CALLBACK_URL // Your redirect uri
@@ -70,9 +68,6 @@ app.get('/addtoqueue', function(req, res) {
 })
 
 app.get('/admin', function(req, res) {
-    console.log('/admin')
-    console.log('req.query')
-    console.log(req.query)
     var options = {
         root: path.join(__dirname, "public")
     }
@@ -228,6 +223,14 @@ app.get('/darkjukebox', function(req, res) {
         root: path.join(__dirname, "public")
     }
     res.sendFile('darkjukebox.html', options)
+})
+
+app.get('/getjidinfo', function(req, res) {
+    console.log(req.query.jid)
+    if (req.query.jid)
+        res.status(200).send({ "jid": req.query.jid })
+    else
+        res.status(400).send({ "error_message": "issue with jid" })
 })
 
 app.get('/handletext', function(req, res) {

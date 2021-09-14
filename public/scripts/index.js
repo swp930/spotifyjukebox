@@ -1,3 +1,5 @@
+
+// This function generates a random id to be used for a new Spotify jukebox
 function createJukeBox() {
     console.log("Jukebox created!")
     console.log(guid())
